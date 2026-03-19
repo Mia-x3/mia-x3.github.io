@@ -240,10 +240,9 @@
     transform: scale(1.01);
     box-shadow: 0 0 0 4px rgba(223,84,84,0.08), inset 0 0 20px rgba(223,84,84,0.05);
   }
-  .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .upload-icon { font-size: 1.6rem; margin-bottom: 4px; transition: transform 0.4s var(--spring); }
-  .upload-area:hover .upload-icon { transform: scale(1.15) translateY(-2px); }
-  .upload-text { font-size: 0.82rem; color: var(--text2); }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 2; }
+  .upload-icon { font-size: 1.6rem; margin-bottom: 4px; pointer-events: none; }
+  .upload-text { font-size: 0.82rem; color: var(--text2); pointer-events: none; }
 
   /* SLIDERS */
   .control-row {
@@ -1175,7 +1174,7 @@
     <div class="logo-sub">Made by Mia with help from Claude AI</div>
   </div>
   <div class="header-actions">
-    <a href="http://mia-tools.fun" class="icon-btn" title="Home">
+    <a href="https://mia-tools.fun" class="icon-btn" title="Home">
       <i data-lucide="house"></i>
     </a>
     <button class="icon-btn" id="sharePaletteBtn" title="Share Palette"><i data-lucide="palette"></i></button>
