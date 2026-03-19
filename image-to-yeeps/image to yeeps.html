@@ -1,0 +1,3480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image to Yeeps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #0f0f12;
+    --bg2:         #161619;
+    --bg3:         #1c1c20;
+    --card:        #1e1e24;
+    --border:      rgba(255,255,255,0.07);
+    --border2:     rgba(255,255,255,0.12);
+    --text:        #ececf5;
+    --text2:       #7878a0;
+    --text3:       #505060;
+    --accent:      #e84545;
+    --accent2:     #f0a030;
+    --accent-glow: rgba(232,69,69,0.2);
+    --accent2-glow: rgba(240,160,48,0.18);
+    --radius:      18px;
+    --radius-sm:   12px;
+    --radius-xs:   8px;
+    --shadow:      0 12px 50px rgba(0,0,0,0.7);
+    --shadow-sm:   0 4px 20px rgba(0,0,0,0.4);
+    --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+    --spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
+    --liquid:      cubic-bezier(0.16, 1, 0.3, 1);
+    --h1-shadow:   #e84545;
+    --font: 'Lilita One', cursive;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font, 'Lilita One', cursive);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.5s var(--liquid), color 0.5s var(--liquid);
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  }
+
+  .logo {
+    font-size: 1.9rem;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+    filter: drop-shadow(0 0 16px rgba(223,84,84,0.25));
+    transition: filter 0.4s var(--ease);
+  }
+  .logo:hover { filter: drop-shadow(0 0 28px rgba(223,84,84,0.5)); }
+
+  .logo-sub {
+    font-size: 0.65rem;
+    color: var(--text2);
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    opacity: 0.7;
+  }
+
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .icon-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -1px 0 rgba(0,0,0,0.1);
+    color: var(--text);
+    width: 40px; height: 40px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.35s var(--spring);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    position: relative;
+    overflow: hidden;
+  }
+  .icon-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%);
+    border-radius: 14px 14px 60% 60%;
+    pointer-events: none;
+  }
+  .icon-btn:hover {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.3);
+    transform: scale(1.1) translateY(-2px);
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.35),
+      0 0 0 1px rgba(255,255,255,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
+  }
+  .icon-btn:active {
+    transform: scale(0.93) translateY(0);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.15),
+      inset 0 2px 6px rgba(0,0,0,0.15);
+  }
+  a.icon-btn { text-decoration: none; }
+
+  /* MAIN LAYOUT */
+  main {
+    display: grid;
+    grid-template-columns: var(--sidebar-w, 320px) 1fr;
+    gap: 0;
+    min-height: calc(100vh - 65px);
+    overflow: hidden;
+  }
+
+  .canvas-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    max-height: calc(100vh - 65px);
+    position: relative;
+    min-width: 240px;
+    max-width: 600px;
+  }
+
+  .sidebar-resize {
+    position: absolute;
+    top: 0; right: -4px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sidebar-resize::after {
+    content: '';
+    width: 3px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--border2);
+    opacity: 0;
+    transition: opacity 0.2s var(--ease), background 0.2s var(--ease);
+  }
+  .sidebar-resize:hover::after,
+  .sidebar-resize.dragging::after {
+    opacity: 1;
+    background: var(--accent);
+  }
+  @media (max-width: 768px) { .sidebar-resize { display: none; } }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 999px; }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  }
+  .panel:hover {
+    border-color: var(--border2);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .panel-title {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-bottom: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* UPLOAD */
+  .upload-area {
+    border: 2px dashed rgba(255,255,255,0.12);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.4s var(--liquid);
+    position: relative;
+    overflow: hidden;
+    background: rgba(255,255,255,0.02);
+  }
+  .upload-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(223,84,84,0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s var(--liquid);
+  }
+  .upload-area:hover::before, .upload-area.drag-over::before { opacity: 1; }
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: var(--accent);
+    transform: scale(1.01);
+    box-shadow: 0 0 0 4px rgba(223,84,84,0.08), inset 0 0 20px rgba(223,84,84,0.05);
+  }
+  .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-icon { font-size: 1.6rem; margin-bottom: 4px; transition: transform 0.4s var(--spring); }
+  .upload-area:hover .upload-icon { transform: scale(1.15) translateY(-2px); }
+  .upload-text { font-size: 0.82rem; color: var(--text2); }
+
+  /* SLIDERS */
+  .control-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--text2);
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 999px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.3s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ff7070, var(--accent));
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 14px var(--accent-glow), 0 2px 6px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform 0.3s var(--spring), box-shadow 0.3s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb {
+    transform: scale(1.25);
+    box-shadow: 0 0 16px rgba(223,84,84,0.8), 0 2px 8px rgba(0,0,0,0.4);
+  }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(0.95); }
+
+  .num-input {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.85rem;
+    border-radius: 8px;
+    padding: 5px 8px;
+    width: 70px;
+    text-align: center;
+    transition: all 0.3s var(--liquid);
+  }
+  .num-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(223,84,84,0.08);
+    box-shadow: 0 0 0 3px rgba(223,84,84,0.15);
+  }
+
+  .slider-row { display: flex; gap: 8px; align-items: center; }
+  .slider-row input[type=range] { flex: 1; }
+
+  /* CHECKBOX */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 3px 0;
+    transition: opacity 0.2s var(--ease);
+  }
+  .check-row:hover { opacity: 0.9; }
+  .check-row input[type=checkbox] { display: none; }
+  .custom-check {
+    width: 17px; height: 17px;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 5px;
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.35s var(--spring);
+    flex-shrink: 0;
+    box-shadow:
+      0 1px 4px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.2),
+      inset 0 -1px 0 rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .custom-check::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  .check-row input:checked + .custom-check {
+    background: rgba(223,84,84,0.7);
+    border-color: rgba(255,120,100,0.6);
+    backdrop-filter: blur(10px);
+    box-shadow:
+      0 2px 10px rgba(223,84,84,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.3),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
+    transform: scale(1.08);
+  }
+  .custom-check::after {
+    content: '✓';
+    color: white;
+    font-size: 0.7rem;
+    opacity: 0;
+    transform: scale(0) rotate(-20deg);
+    transition: all 0.3s var(--spring);
+  }
+  .check-row input:checked + .custom-check::after { opacity: 1; transform: scale(1) rotate(0deg); }
+  .check-label { font-size: 0.82rem; color: var(--text2); transition: color 0.2s; }
+  .check-row:hover .check-label { color: var(--text); }
+
+  /* BUTTONS */
+  .btn {
+    background: linear-gradient(160deg,
+      rgba(255,100,80,0.85) 0%,
+      rgba(223,84,84,0.75) 40%,
+      rgba(200,60,60,0.8) 100%
+    );
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: var(--radius-sm);
+    padding: 9px 20px;
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.5px;
+    transition: all 0.4s var(--spring);
+    box-shadow:
+      0 4px 20px rgba(223,84,84,0.35),
+      0 1px 0 rgba(255,255,255,0.3) inset,
+      0 -1px 0 rgba(0,0,0,0.15) inset;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 60% 60%;
+    pointer-events: none;
+  }
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s var(--liquid), height 0.6s var(--liquid), opacity 0.6s;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn:hover {
+    transform: translateY(-3px) scale(1.01);
+    background: linear-gradient(160deg,
+      rgba(255,120,100,0.9) 0%,
+      rgba(230,90,90,0.85) 40%,
+      rgba(210,70,70,0.88) 100%
+    );
+    box-shadow:
+      0 10px 36px rgba(223,84,84,0.5),
+      0 1px 0 rgba(255,255,255,0.35) inset,
+      0 -1px 0 rgba(0,0,0,0.2) inset;
+  }
+  .btn:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow:
+      0 2px 10px rgba(223,84,84,0.3),
+      0 1px 0 rgba(255,255,255,0.15) inset,
+      inset 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .btn:active::after { width: 350px; height: 350px; opacity: 0; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-sm { padding: 5px 12px; font-size: 0.78rem; width: auto; border-radius: 8px; }
+
+  /* ZOOM BAR */
+  .zoom-bar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(42,42,42,0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    width: 100%;
+    flex-wrap: wrap;
+    touch-action: none;
+    transition: all 0.4s var(--liquid);
+  }
+  .zoom-bar.visible { display: flex; animation: slideDown 0.4s var(--liquid); }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .zoom-label { font-size: 0.82rem; color: var(--text2); white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .zoom-bar input[type=range] { flex: 1; min-width: 80px; }
+  .zoom-bar .num-input { width: 64px; }
+  .zoom-reset {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text2);
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.75rem;
+    border-radius: 8px;
+    padding: 5px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.3s var(--spring);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .zoom-reset:hover {
+    background: rgba(223,84,84,0.18);
+    border-color: rgba(223,84,84,0.4);
+    color: var(--accent);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(223,84,84,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  /* CANVAS AREA */
+  .canvas-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 24px;
+    position: relative;
+    overflow: auto;
+    background:
+      radial-gradient(ellipse at 25% 25%, rgba(232,69,69,0.04) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 75%, rgba(240,160,48,0.03) 0%, transparent 55%),
+      repeating-conic-gradient(#181820 0% 25%, #13131a 0% 50%) 0 0 / 18px 18px;
+    scroll-behavior: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    min-height: 60vh;
+    flex: 1;
+  }
+  .canvas-area.panning { cursor: grabbing !important; }
+  .canvas-area.panning * { cursor: grabbing !important; }
+
+  .canvas-placeholder {
+    text-align: center;
+    color: var(--text2);
+    animation: float 3.5s ease-in-out infinite;
+    margin: auto;
+    opacity: 0.6;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-12px) rotate(1deg); }
+  }
+  .placeholder-icon { font-size: 3.5rem; margin-bottom: 8px; }
+  .placeholder-text { font-size: 1.1rem; }
+
+  .canvas-wrapper {
+    position: relative;
+    display: none;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.3), var(--shadow);
+    overflow: hidden;
+    cursor: grab;
+    transition: box-shadow 0.3s var(--ease);
+  }
+  .canvas-wrapper:hover { box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 12px 48px rgba(0,0,0,0.6); }
+  .canvas-wrapper.visible { display: inline-block; animation: canvasReveal 0.5s var(--liquid); }
+  @keyframes canvasReveal { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+  .canvas-wrapper.panning { cursor: grabbing; }
+  .canvas-wrapper.tool-paint { cursor: crosshair !important; }
+  .canvas-wrapper.tool-bucket { cursor: cell !important; }
+
+  #outputCanvas { image-rendering: pixelated; display: block; }
+  #overlayCanvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; pointer-events: none; display: block; }
+  #gridCanvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; pointer-events: none; display: none; opacity: 0; transition: opacity 0.25s; }
+  #gridCanvas.visible { display: block; opacity: 1; }
+
+  /* TOOLTIP */
+  #tooltip {
+    position: fixed;
+    background: var(--bg3);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+    transition: opacity 0.2s var(--ease), transform 0.3s var(--spring);
+    z-index: 9999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    max-width: 200px;
+  }
+  #tooltip.visible { opacity: 1; transform: translateY(0) scale(1); }
+  #tooltip .tip-name { font-size: 0.95rem; color: var(--accent2); }
+  #tooltip .tip-count { font-size: 0.72rem; color: var(--text2); margin-top: 3px; }
+  #tooltip .tip-block { font-size: 0.72rem; color: #5EC9A0; margin-top: 2px; }
+
+  /* SETTINGS MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s var(--ease);
+    padding: 16px;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 22px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px;
+    transform: translateY(40px) scale(0.93);
+    transition: transform 0.5s var(--liquid);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-size: 1.4rem; color: var(--accent2); }
+  .close-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text2);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: all 0.3s var(--spring);
+  }
+  .close-btn:hover { background: rgba(223,84,84,0.15); border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
+
+  /* THEME PRESETS */
+  .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .theme-card {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.35s var(--spring);
+    font-size: 0.78rem;
+    background: rgba(255,255,255,0.03);
+  }
+  .theme-card:hover { border-color: rgba(223,84,84,0.5); transform: scale(1.05) translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+  .theme-card.active { border-color: var(--accent); background: rgba(223,84,84,0.08); }
+  .theme-swatch { width: 40px; height: 40px; border-radius: 10px; margin: 0 auto 6px; border: 1px solid rgba(255,255,255,0.1); }
+
+  /* CUSTOM THEME */
+  .color-pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .color-pick-row { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text2); }
+  .color-pick-row input[type=color] { width: 34px; height: 34px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 2px; background: transparent; cursor: pointer; }
+
+  /* PALETTE */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+    gap: 5px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .palette-swatch {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s var(--spring);
+    flex-shrink: 0;
+  }
+  .palette-swatch:hover { transform: scale(1.25) translateY(-2px); z-index: 1; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .palette-swatch.disabled { opacity: 0.18; filter: grayscale(0.5); }
+  .palette-swatch.disabled::after { content: '✕'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: white; text-shadow: 0 0 3px black; }
+  .palette-swatch.custom-color { border: 1.5px solid var(--accent); }
+
+  .add-color-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+  .add-color-row input[type=color] { width: 38px; height: 34px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 2px; background: transparent; cursor: pointer; }
+  .add-color-row input[type=text] { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text); font-family: 'Lilita One', system-ui, sans-serif; font-size: 0.82rem; border-radius: 8px; padding: 6px 10px; transition: all 0.3s var(--liquid); }
+  .add-color-row input[type=text]:focus { outline: none; border-color: var(--accent); background: rgba(223,84,84,0.07); box-shadow: 0 0 0 3px rgba(223,84,84,0.12); }
+
+  /* LOADING */
+  .loading-bar { width: 100%; height: 3px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; display: none; }
+  .loading-bar.active { display: block; }
+  .loading-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+    background-size: 200% 100%;
+    border-radius: 999px;
+    width: 0%;
+    transition: width 0.35s var(--liquid);
+    animation: shimmerFlow 2s linear infinite;
+  }
+  @keyframes shimmerFlow { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+  /* DOWNLOAD BTN */
+  .btn-outline {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.16);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.85rem;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.5px;
+    transition: background 0.3s var(--ease), transform 0.3s var(--spring), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease), color 0.3s var(--ease);
+    margin-top: 4px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.2),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-outline::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 60% 60%;
+    pointer-events: none;
+  }
+  .btn-outline:hover {
+    background: rgba(223,84,84,0.2);
+    border-color: rgba(223,84,84,0.5);
+    color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow:
+      0 6px 20px rgba(223,84,84,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -1px 0 rgba(0,0,0,0.1);
+  }
+  .btn-outline:active { transform: translateY(0) scale(0.97); }
+
+  /* TOOLS */
+  .tool-btns { display: flex; gap: 6px; margin-bottom: 8px; }
+  .tool-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 11px;
+    padding: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s var(--spring);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.2),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+  }
+  .tool-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    border-radius: 11px 11px 60% 60%;
+    pointer-events: none;
+  }
+  .tool-btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
+    box-shadow:
+      0 6px 18px rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.28),
+      inset 0 -1px 0 rgba(0,0,0,0.1);
+  }
+  .tool-btn.active {
+    background: rgba(223,84,84,0.25);
+    border-color: rgba(223,84,84,0.5);
+    box-shadow:
+      0 0 0 1px rgba(223,84,84,0.3),
+      0 4px 16px rgba(223,84,84,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.25),
+      inset 0 -1px 0 rgba(0,0,0,0.1);
+  }
+  .tool-btn:active { transform: scale(0.93); }
+
+  .tool-color-row { display: none; flex-direction: column; gap: 8px; }
+  .tool-color-row.visible { display: flex; animation: fadeSlideIn 0.3s var(--liquid); }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .tool-color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(22px, 1fr)); gap: 4px; max-height: 110px; overflow-y: auto; }
+  .tool-color-swatch { width: 22px; height: 22px; border-radius: 5px; border: 1.5px solid transparent; cursor: pointer; transition: all 0.25s var(--spring); flex-shrink: 0; }
+  .tool-color-swatch:hover { transform: scale(1.25); z-index: 1; }
+  .tool-color-swatch.selected { border-color: white; box-shadow: 0 0 0 1.5px var(--accent), 0 2px 8px rgba(0,0,0,0.4); transform: scale(1.15); }
+
+  .import-palette-btn {
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--card);
+    transition: all 0.3s var(--spring);
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+  }
+  .import-palette-btn:hover { border-color: rgba(223,158,84,0.5); background: rgba(223,158,84,0.1); transform: scale(1.1); }
+
+  /* COLOR SUMMARY */
+  #colorSummaryList { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; }
+  .summary-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text2); }
+  .summary-swatch { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
+  .summary-bar-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; }
+  .summary-bar { height: 100%; border-radius: 999px; transition: width 0.5s var(--liquid); }
+  .summary-count { min-width: 28px; text-align: right; color: var(--text); font-size: 0.75rem; }
+
+  /* RECENTLY USED */
+  .recent-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+  .recent-label { font-size: 0.72rem; color: var(--text2); }
+  .recent-swatches { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg3);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    font-size: 0.88rem;
+    padding: 10px 22px;
+    border-radius: 999px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease), transform 0.4s var(--spring);
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* INFO BUTTON */
+  .info-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    color: var(--text2);
+    font-size: 0.6rem;
+    cursor: pointer;
+    border: none;
+    flex-shrink: 0;
+    transition: all 0.25s var(--spring);
+    position: relative;
+    user-select: none;
+    vertical-align: middle;
+    margin-left: 4px;
+    font-family: var(--font, 'Lilita One', cursive);
+    line-height: 1;
+  }
+  .info-btn:hover, .info-btn.active { background: var(--accent); color: #fff; transform: scale(1.2); }
+
+  .info-popover {
+    position: fixed;
+    z-index: 9998;
+    background: var(--bg3);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    color: var(--text);
+    max-width: 230px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+    transition: opacity 0.2s var(--ease), transform 0.3s var(--spring);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    line-height: 1.5;
+  }
+  .info-popover.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+  .info-popover strong { color: var(--accent2); display: block; margin-bottom: 4px; }
+
+  /* DOWNLOAD BTNS */
+  .download-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .download-btns .btn-outline { flex: 1; margin-top: 0; font-size: 0.78rem; padding: 8px 8px; }
+
+  /* STATS */
+  .stats-bar { display: flex; gap: 10px; font-size: 0.75rem; color: var(--text2); margin-top: 4px; flex-wrap: wrap; }
+  .stats-bar span { color: var(--accent2); }
+
+  /* SECTION DIVIDER */
+  .section-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 4px 0; }
+
+  /* PALETTE SWATCH WRAP */
+  .palette-swatch-wrap { position: relative; }
+  .remove-custom {
+    position: absolute; top: -4px; right: -4px;
+    width: 13px; height: 13px;
+    background: var(--accent);
+    border: none; border-radius: 50%;
+    color: white; font-size: 0.5rem;
+    cursor: pointer; display: none; align-items: center; justify-content: center;
+    z-index: 2; line-height: 1;
+    transition: transform 0.2s var(--spring);
+  }
+  .palette-swatch-wrap:hover .remove-custom { display: flex; }
+  .remove-custom:hover { transform: scale(1.2); }
+
+  /* BLOCK TYPE OPTIONS - smooth expand/collapse */
+  #blockTypeOptions {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    padding-left: 32px;
+    transition: max-height 0.45s var(--liquid), opacity 0.35s var(--ease), margin-top 0.35s var(--ease);
+    margin-top: 0;
+  }
+  #blockTypeOptions.open {
+    max-height: 400px;
+    opacity: 1;
+    margin-top: 4px;
+  }
+  #moreOptimisingOptions {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    padding-left: 22px;
+    transition: max-height 0.4s var(--liquid), opacity 0.3s var(--ease);
+  }
+  #moreOptimisingOptions.open {
+    max-height: 200px;
+    opacity: 1;
+  }
+
+  /* SHORTCUT HINT */
+  .shortcut-hint { position: absolute; bottom: 10px; right: 12px; font-size: 0.66rem; color: var(--text2); opacity: 0.35; pointer-events: none; letter-spacing: 0.5px; }
+  @media (max-width: 768px) { .shortcut-hint { display: none; } }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(232,69,69,0.4); }
+
+  /* APPEARANCE POPOVER */
+  .ap-popover {
+    position: fixed;
+    top: 58px;
+    right: 16px;
+    width: 320px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 16px;
+    z-index: 500;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+    pointer-events: none;
+    transition: opacity 0.25s var(--ease), transform 0.3s var(--spring);
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+  .ap-popover.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+  }
+  .ap-section-label {
+    font-size: 0.7rem;
+    color: var(--text2);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 12px 0 8px;
+  }
+  .ap-section-label:first-child { margin-top: 0; }
+
+  /* LIGHT/DARK TOGGLE */
+  .mode-toggle {
+    display: flex;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 5px 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* THEME GRID (in popover, smaller) */
+  .ap-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .ap-theme-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    cursor: pointer;
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.62rem;
+    color: var(--text2);
+    transition: all 0.2s var(--spring);
+  }
+  .ap-theme-btn:hover { border-color: var(--border2); transform: scale(1.05); }
+  .ap-theme-btn.active { border-color: var(--accent); color: var(--accent); }
+  .ap-theme-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+  }
+
+  /* CUSTOM PICKERS (compact) */
+  .ap-pickers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .ap-pick-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text2);
+  }
+  .ap-pick-row input[type=color] {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* FONT PICKER */
+  .ap-font-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .ap-font-btn {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    text-align: left;
+  }
+  .ap-font-btn:hover { border-color: var(--border2); background: var(--bg3); }
+  .ap-font-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* LIGHT MODE OVERRIDES */
+  body.light-mode {
+    --bg: #f2ede8;
+    --bg2: #ebe4de;
+    --bg3: #e3dbd4;
+    --card: #d8d0c8;
+    --border: #c0b8b0;
+    --border2: #a8a098;
+    --text: #2a2018;
+    --text2: #6a5e54;
+  }
+
+  /* OPTIONS BUTTON */
+  .options-open-btn {
+    width: 100%;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.25s var(--spring);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .options-open-btn:hover {
+    background: rgba(223,84,84,0.15);
+    border-color: rgba(223,84,84,0.4);
+    color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(223,84,84,0.2), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  .opt-section-label {
+    font-size: 0.7rem;
+    color: var(--text2);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* LUCIDE ICONS */
+  .icon-btn svg, .tool-btn svg, .options-open-btn svg,
+  .import-palette-btn svg, .close-btn svg, .zoom-reset svg,
+  .panel-title svg, .placeholder-icon svg, .upload-icon svg,
+  .btn svg, .btn-outline svg {
+    width: 16px; height: 16px;
+    stroke-width: 1.75;
+    display: block;
+    flex-shrink: 0;
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .tool-btn svg { width: 17px; height: 17px; }
+  .placeholder-icon svg { width: 56px; height: 56px; stroke-width: 1.2; }
+  .upload-icon svg { width: 36px; height: 36px; stroke-width: 1.4; }
+  .panel-title svg { width: 14px; height: 14px; stroke-width: 2; opacity: 0.7; }
+  .import-palette-btn svg { width: 15px; height: 15px; stroke-width: 2; }
+  .zoom-label svg { width: 14px; height: 14px; stroke-width: 2; display: inline; vertical-align: middle; }
+
+  /* EXTRA POLISH */
+  .palette-swatch { transition: transform 0.3s var(--spring), filter 0.2s, opacity 0.2s; }
+  .palette-swatch:hover { transform: scale(1.3) translateY(-3px); filter: brightness(1.2) saturate(1.2); }
+
+  .check-row input:checked + .custom-check { animation: checkPop 0.4s var(--spring); }
+  @keyframes checkPop {
+    0%   { transform: scale(0.7); }
+    60%  { transform: scale(1.18); }
+    100% { transform: scale(1.08); }
+  }
+
+  .panel { transition: border-color 0.4s var(--liquid), box-shadow 0.4s var(--liquid); }
+
+  /* MODAL ENTER */
+  .modal {
+    box-shadow: 0 32px 100px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -1px 0 rgba(0,0,0,0.3);
+    transition: transform 0.6s var(--liquid), opacity 0.4s var(--ease);
+  }
+  .modal-overlay { backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
+
+  /* CANVAS WRAPPER GLOW */
+  .canvas-wrapper.visible { animation: canvasReveal 0.6s var(--liquid); }
+  @keyframes canvasReveal { from { opacity: 0; transform: scale(0.94) translateY(14px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .canvas-wrapper:hover { box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 24px 80px rgba(0,0,0,0.8), 0 0 60px rgba(232,69,69,0.06); }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    .canvas-column { min-height: 0; }
+    .sidebar { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+    .canvas-area { min-height: 60vh; padding: 16px; }
+    .logo { font-size: 1.4rem; }
+    .ap-popover { right: 8px; width: calc(100vw - 16px); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">✦ Image to Yeeps</div>
+    <div class="logo-sub">Made by Mia with help from Claude AI</div>
+  </div>
+  <div class="header-actions">
+    <a href="https://mia-tools.fun" class="icon-btn" title="Home">
+      <i data-lucide="house"></i>
+    </a>
+    <button class="icon-btn" id="sharePaletteBtn" title="Share Palette"><i data-lucide="palette"></i></button>
+    <button class="icon-btn" id="shareBtn" title="Share image URL"><i data-lucide="link"></i></button>
+    <button class="icon-btn" id="appearanceBtn" title="Appearance"><i data-lucide="sparkles"></i></button>
+  </div>
+</header>
+
+<!-- APPEARANCE POPOVER -->
+<div class="ap-popover" id="apPopover">
+  <div class="ap-section-label">Mode</div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="modeDarkBtn">🌙 Dark</button>
+    <button class="mode-btn" id="modeLightBtn">☀ Light</button>
+  </div>
+  <div class="ap-section-label">Theme</div>
+  <div class="ap-theme-grid" id="apThemeGrid"></div>
+  <div class="ap-section-label">Custom Colors</div>
+  <div class="ap-pickers" id="apPickers"></div>
+  <button class="btn" style="font-size:0.8rem;padding:6px 12px;" onclick="saveTheme()">💾 Save Theme</button>
+  <div class="ap-section-label">Font</div>
+  <div class="ap-font-grid" id="apFontGrid"></div>
+</div>
+
+<main>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-resize" id="sidebarResize"></div>
+
+    <!-- UPLOAD -->
+    <div class="panel">
+      <div class="panel-title"><i data-lucide="upload"></i> Upload Image</div>
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept="image/*">
+        <div class="upload-icon"><i data-lucide="image"></i></div>
+        <div class="upload-text">Drop image or click to browse<br><small>Any format supported</small></div>
+      </div>
+    </div>
+
+    <!-- PIXEL SIZE -->
+    <div class="panel">
+      <div class="panel-title"><i data-lucide="grid-2x2"></i> Pixel Size</div>
+      <div class="control-row">
+        <div class="control-label">
+          <span>Pixels per side <button class="info-btn" data-info="pixels-per-side">?</button></span>
+        </div>
+        <div class="slider-row">
+          <input type="range" id="pixelSlider" min="4" max="256" value="32">
+          <input type="number" class="num-input" id="pixelInput" min="4" max="256" value="32">
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTIONS BUTTON -->
+    <button class="options-open-btn" id="optionsBtn"><i data-lucide="settings-2"></i> Options</button>
+
+    <!-- TOOLS -->
+    <div class="panel" id="toolsPanel" style="display:none">
+      <div class="panel-title"><i data-lucide="paintbrush-2"></i> Tools</div>
+      <div class="tool-btns">
+        <button class="tool-btn active" id="toolPointer" onclick="setTool('pointer')" title="Pointer (hover info)"><i data-lucide="mouse-pointer-2"></i></button>
+        <button class="tool-btn" id="toolPaint" onclick="setTool('paint')" title="Paint (P)"><i data-lucide="pencil"></i></button>
+        <button class="tool-btn" id="toolBucket" onclick="setTool('bucket')" title="Bucket fill (B)"><i data-lucide="paint-bucket"></i></button>
+        <button class="tool-btn" id="toolUndo" onclick="undo()" title="Undo (Ctrl+Z)"><i data-lucide="undo-2"></i></button>
+        <button class="tool-btn" id="toolRedo" onclick="redo()" title="Redo (Ctrl+Y)"><i data-lucide="redo-2"></i></button>
+      </div>
+      <div class="tool-color-row" id="toolColorRow">
+        <div class="recent-row" id="recentRow" style="display:none">
+          <span class="recent-label">Recently used:</span>
+          <div class="recent-swatches" id="recentSwatches"></div>
+        </div>
+        <span style="font-size:0.8rem;color:var(--text2)">All colors:</span>
+        <div class="tool-color-grid" id="toolColorGrid"></div>
+      </div>
+    </div>
+
+    <!-- PALETTE -->
+    <div class="panel">
+      <div class="panel-title"><i data-lucide="swatch-book"></i> Palette <button class="info-btn" data-info="palette">?</button></div>
+      <div class="palette-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <small style="color:var(--text2); font-size:0.75rem;">Click to toggle (default colors persist)</small>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="import-palette-btn" onclick="resetPalette()" title="Reset to default colors"><i data-lucide="trash-2"></i></button>
+          <label class="import-palette-btn" title="Import colors from image">
+            <i data-lucide="camera"></i>
+            <input type="file" id="importPaletteInput" accept="image/*" style="display:none">
+          </label>
+        </div>
+      </div>
+      <div class="palette-grid" id="paletteGrid"></div>
+      <div class="add-color-row">
+        <input type="color" id="addColorPicker" value="#ff0000">
+        <input type="text" id="addColorName" placeholder="Color name...">
+        <button class="btn btn-sm" onclick="addCustomColor()">Add</button>
+      </div>
+    </div>
+
+    <!-- COLOR SUMMARY -->
+    <div class="panel" id="colorSummaryPanel" style="display:none">
+      <div class="panel-title"><i data-lucide="bar-chart-3"></i> Color Summary</div>
+      <div id="colorSummaryList"></div>
+    </div>
+
+    <!-- CONVERT -->
+    <div class="loading-bar" id="loadingBar"><div class="loading-fill" id="loadingFill"></div></div>
+    <div class="download-btns" id="downloadBtns" style="display:none">
+      <button class="btn-outline" onclick="downloadImage(false)"><i data-lucide="download"></i> PNG (clean)</button>
+      <button class="btn-outline" onclick="downloadImage(true)"><i data-lucide="download"></i> PNG (outlines)</button>
+      <button class="btn-outline" onclick="copyToClipboard(false)" style="flex-basis:100%"><i data-lucide="clipboard"></i> Copy (clean)</button>
+      <button class="btn-outline" onclick="copyToClipboard(true)" style="flex-basis:100%"><i data-lucide="clipboard-copy"></i> Copy (outlines)</button>
+    </div>
+    <div class="stats-bar" id="statsBar"></div>
+
+  </aside>
+
+  <!-- CANVAS COLUMN (zoom bar + canvas stacked) -->
+  <div class="canvas-column">
+    <!-- ZOOM BAR (outside canvas-area to avoid touch conflicts) -->
+    <div class="zoom-bar" id="zoomBar">
+      <span class="zoom-label"><i data-lucide="zoom-in"></i> Zoom <button class="info-btn" data-info="zoom">?</button></span>
+      <input type="range" id="zoomSlider" min="10" max="1000" value="100" step="5">
+      <input type="number" class="num-input" id="zoomInput" min="10" max="1000" value="100" step="5">
+      <button class="zoom-reset" onclick="resetZoom()">Reset</button>
+    </div>
+
+    <!-- CANVAS -->
+    <section class="canvas-area" id="canvasArea">
+      <div class="canvas-placeholder" id="placeholder">
+        <div class="placeholder-icon"><i data-lucide="image-plus"></i></div>
+        <div class="placeholder-text">Upload an image to get started!</div>
+      </div>
+      <div class="canvas-wrapper" id="canvasWrapper" style="cursor:crosshair;">
+        <canvas id="outputCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      <canvas id="gridCanvas"></canvas>
+      </div>
+      <div class="shortcut-hint">P = paint · B = bucket · Esc = pointer · +/- = zoom · R = reset</div>
+    </section>
+  </div>
+</main>
+
+<!-- OPTIONS MODAL -->
+<div class="modal-overlay" id="optionsModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:1.2rem;">⚙ Options</div>
+      <button class="close-btn" onclick="document.getElementById('optionsModal').classList.remove('open')"><i data-lucide="x"></i></button>
+    </div>
+
+    <div class="opt-section-label">Conversion</div>
+    <label class="check-row">
+      <input type="checkbox" id="ditherCheck">
+      <span class="custom-check"></span>
+      <span class="check-label">Enable dithering <button class="info-btn" data-info="dithering">?</button></span>
+    </label>
+    <label class="check-row">
+      <input type="checkbox" id="includeTransparency" checked>
+      <span class="custom-check"></span>
+      <span class="check-label">Include transparency</span>
+    </label>
+
+    <div class="opt-section-label" style="margin-top:14px;">Block Connecting</div>
+    <label class="check-row">
+      <input type="checkbox" id="connectPixels">
+      <span class="custom-check"></span>
+      <span class="check-label">Connect pixels <button class="info-btn" data-info="connect-pixels">?</button></span>
+    </label>
+    <div id="blockTypeOptions" style="padding-left:22px;">
+      <label class="check-row">
+        <input type="checkbox" id="useVending">
+        <span class="custom-check"></span>
+        <span class="check-label">Use 3x2 Vending machine</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="useBuildplate">
+        <span class="custom-check"></span>
+        <span class="check-label">Use 16x16 Build plate</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="useMoreOptimising">
+        <span class="custom-check"></span>
+        <span class="check-label">More optimising</span>
+      </label>
+      <div id="moreOptimisingOptions" style="padding-left:22px;">
+        <label class="check-row" id="useSidewaysVendingRow">
+          <input type="checkbox" id="useSidewaysVending">
+          <span class="custom-check"></span>
+          <span class="check-label">Sideways vending machine (1x3)</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="useHorrorTable">
+          <span class="custom-check"></span>
+          <span class="check-label">Horror table <small style="color:var(--text2)">(4x6, Maroon only)</small></span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="use1x16">
+          <span class="custom-check"></span>
+          <span class="check-label">1x16 Wood block (sideways 2x16)</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- TOOLTIP -->
+<div id="tooltip">
+  <div class="tip-name" id="tipName"></div>
+  <div class="tip-count" id="tipCount"></div>
+  <div class="tip-block" id="tipBlock"></div>
+</div>
+
+<script>
+// =====================
+// PALETTE DATA
+// =====================
+const DEFAULT_COLORS = [
+  {name:"Red",hex:"#DF5454"},
+  {name:"Dark Red",hex:"#54393C"},
+  {name:"Orange",hex:"#DF6F54"},
+  {name:"Light Orange",hex:"#DF9E54"},
+  {name:"Mocha",hex:"#89462D"},
+  {name:"Light Mocha",hex:"#A16550"},
+  {name:"Light Yellow",hex:"#F5C68D"},
+  {name:"Light Brown",hex:"#B79C91"},
+  {name:"Brown",hex:"#91776b"},
+  {name:"Dark Brown",hex:"#423732"},
+  {name:"Dark Maroon",hex:"#352A2A"},
+  {name:"Maroon",hex:"#9D4141"},
+  {name:"Beige",hex:"#E2C5A0"},
+  {name:"Guac",hex:"#E3F06D"},
+  {name:"Lime",hex:"#83BB44"},
+  {name:"Green",hex:"#469740"},
+  {name:"Dark Green",hex:"#2d594f"},
+  {name:"Turquoise",hex:"#38886d"},
+  {name:"Light Teal",hex:"#5EC9A0"},
+  {name:"Cyan",hex:"#5EC6C9"},
+  {name:"Olive",hex:"#466A2D"},
+  {name:"Light Olive",hex:"#689C43"},
+  {name:"Teal",hex:"#387D88"},
+  {name:"Light Blue",hex:"#82B9DF"},
+  {name:"Blue",hex:"#5D6BBD"},
+  {name:"Dark Blue",hex:"#576077"},
+  {name:"Blurple",hex:"#3264af"},
+  {name:"Purple",hex:"#735fb0"},
+  {name:"Pink",hex:"#DB89AC"},
+  {name:"Orchid",hex:"#d378c4"},
+  {name:"Lavender",hex:"#927FDE"},
+  {name:"Periwinkle",hex:"#C1B4F9"},
+  {name:"Dark Purple",hex:"#36394C"},
+  {name:"Gray",hex:"#BCBFC4"},
+  {name:"White",hex:"#F5F5F5"},
+  {name:"Black",hex:"#121212"},
+  {name:"Dark Gray",hex:"#77797B"},
+  {name:"Yellow",hex:"#e1bb51"},
+];
+
+let disabledColors = new Set();
+let customColors = JSON.parse(localStorage.getItem('px_custom_colors') || '[]');
+
+function getAllActiveColors() {
+  const all = [...DEFAULT_COLORS.map(c=>({...c,custom:false})), ...customColors.map(c=>({...c,custom:true}))];
+  return all.filter(c => !disabledColors.has(c.hex));
+}
+
+// =====================
+// THEMES
+// =====================
+const THEMES = [
+  {name:"Dark Ember",  bg:"#121212",bg2:"#1a1a1a",bg3:"#1e1e1e",card:"#252525",border:"#2e2e2e",border2:"#3a3a3a",text:"#e0e0e0",text2:"#888",accent:"#DF5454",accent2:"#DF9E54","h1-shadow":"#DF5454"},
+  {name:"Midnight",    bg:"#0d0d18",bg2:"#13131f",bg3:"#18182a",card:"#1e1e32",border:"#282840",border2:"#363655",text:"#e4e4ff",text2:"#8888bb",accent:"#7b5ea7",accent2:"#C1B4F9","h1-shadow":"#7b5ea7"},
+  {name:"Forest",      bg:"#0a120a",bg2:"#101810",bg3:"#141e14",card:"#1a261a",border:"#1e2e1e",border2:"#2a402a",text:"#e0f0e0",text2:"#7aaa7a",accent:"#469740",accent2:"#83BB44","h1-shadow":"#469740"},
+  {name:"Ocean",       bg:"#0a1118",bg2:"#0f1922",bg3:"#13202c",card:"#192836",border:"#1e3045",border2:"#28455e",text:"#d8ecff",text2:"#6a9ab8",accent:"#5D6BBD",accent2:"#82B9DF","h1-shadow":"#5D6BBD"},
+  {name:"Rose",        bg:"#14090c",bg2:"#1c0f12",bg3:"#221318",card:"#2a1720",border:"#381824",border2:"#4a2432",text:"#fde8ec",text2:"#bb7788",accent:"#DB89AC",accent2:"#d378c4","h1-shadow":"#DB89AC"},
+  {name:"Trans 🏳️‍⚧️",  bg:"#0e1e28",bg2:"#152430",bg3:"#1a2c3a",card:"#1e3444",border:"#253e50",border2:"#2e5065",text:"#FFFFFF",text2:"#F5A9B8",accent:"#55CDFC",accent2:"#F5A9B8","h1-shadow":"#55CDFC"},
+  {name:"Latte",       bg:"#f5ede4",bg2:"#ede5dc",bg3:"#e6ddd4",card:"#ddd4ca",border:"#c8bcac",border2:"#b8a898",text:"#3c2a1e",text2:"#7a5c42",accent:"#89462D",accent2:"#DF9E54","h1-shadow":"#89462D"},
+];
+
+let currentTheme = JSON.parse(localStorage.getItem('px_theme') || 'null') || THEMES[0];
+applyTheme(currentTheme);
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  const map = {bg:'--bg',bg2:'--bg2',bg3:'--bg3',card:'--card',border:'--border',border2:'--border2',text:'--text',text2:'--text2',accent:'--accent',accent2:'--accent2','h1-shadow':'--h1-shadow'};
+  Object.entries(theme).forEach(([k,v]) => {
+    if(map[k]) root.style.setProperty(map[k], v);
+  });
+}
+
+function saveTheme() {
+  localStorage.setItem('px_theme', JSON.stringify(currentTheme));
+}
+
+// =====================
+// APPEARANCE POPOVER
+// =====================
+const FONTS = [
+  {name: 'Lilita One', family: "'Lilita One', cursive"},
+  {name: 'Fredoka One', family: "'Fredoka One', cursive"},
+  {name: 'Nunito', family: "'Nunito', sans-serif"},
+  {name: 'Space Mono', family: "'Space Mono', monospace"},
+  {name: 'Syne', family: "'Syne', sans-serif"},
+];
+// Load fonts
+FONTS.forEach(f => {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${f.name.replace(/ /g,'+')}:wght@400;700&display=swap`;
+  document.head.appendChild(link);
+});
+
+let currentFont = localStorage.getItem('px_font') || 'Lilita One';
+let lightMode = localStorage.getItem('px_light') === '1';
+
+function applyFont(name) {
+  const f = FONTS.find(f => f.name === name) || FONTS[0];
+  document.documentElement.style.setProperty('--font', f.family);
+  document.body.style.fontFamily = f.family;
+  currentFont = name;
+  document.querySelectorAll('.ap-font-btn').forEach(b => b.classList.toggle('active', b.dataset.font === name));
+}
+
+function applyLightMode(on) {
+  lightMode = on;
+  document.body.classList.toggle('light-mode', on);
+  document.getElementById('modeDarkBtn').classList.toggle('active', !on);
+  document.getElementById('modeLightBtn').classList.toggle('active', on);
+  localStorage.setItem('px_light', on ? '1' : '0');
+}
+
+const apPopover = document.getElementById('apPopover');
+const apBtn = document.getElementById('appearanceBtn');
+apBtn.onclick = e => { e.stopPropagation(); apPopover.classList.toggle('open'); };
+document.addEventListener('click', e => {
+  if(!apPopover.contains(e.target) && e.target !== apBtn) apPopover.classList.remove('open');
+});
+
+document.getElementById('modeDarkBtn').onclick = () => applyLightMode(false);
+document.getElementById('modeLightBtn').onclick = () => applyLightMode(true);
+
+// Build theme grid
+const apThemeGrid = document.getElementById('apThemeGrid');
+THEMES.forEach((t, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'ap-theme-btn' + (t.name === currentTheme.name ? ' active' : '');
+  const isTrans = t.name.startsWith('Trans');
+  const dotStyle = isTrans
+    ? `background: linear-gradient(180deg, #55CDFC 0% 20%, #F5A9B8 20% 40%, #FFFFFF 40% 60%, #F5A9B8 60% 80%, #55CDFC 80% 100%)`
+    : `background: linear-gradient(135deg, ${t.accent}, ${t.accent2})`;
+  const shortName = t.name.replace(' 🏳️‍⚧️','').replace('Dark ','');
+  btn.innerHTML = `<div class="ap-theme-dot" style="${dotStyle}"></div>${shortName}`;
+  btn.onclick = () => {
+    currentTheme = {...t};
+    applyTheme(currentTheme);
+    apThemeGrid.querySelectorAll('.ap-theme-btn').forEach((b,j) => b.classList.toggle('active', j===i));
+    buildApPickers();
+  };
+  apThemeGrid.appendChild(btn);
+});
+
+// Build custom color pickers
+const PICK_KEYS   = ['bg','bg2','card','border','text','text2','accent','accent2'];
+const PICK_LABELS = ['Background','Surface','Card','Border','Text','Text 2','Accent','Accent 2'];
+function buildApPickers() {
+  const el = document.getElementById('apPickers');
+  el.innerHTML = '';
+  PICK_KEYS.forEach((k, i) => {
+    const row = document.createElement('div');
+    row.className = 'ap-pick-row';
+    const inp = document.createElement('input');
+    inp.type = 'color';
+    inp.value = currentTheme[k] || '#000000';
+    inp.oninput = () => { currentTheme[k] = inp.value; applyTheme(currentTheme); };
+    row.appendChild(inp);
+    row.appendChild(document.createTextNode(PICK_LABELS[i]));
+    el.appendChild(row);
+  });
+}
+buildApPickers();
+
+// Build font grid
+function buildFontGrid() {
+  const el = document.getElementById('apFontGrid');
+  el.innerHTML = '';
+  FONTS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'ap-font-btn' + (f.name === currentFont ? ' active' : '');
+    btn.style.fontFamily = f.family;
+    btn.dataset.font = f.name;
+    btn.textContent = f.name;
+    btn.onclick = () => { applyFont(f.name); localStorage.setItem('px_font', f.name); };
+    el.appendChild(btn);
+  });
+}
+buildFontGrid();
+
+function saveTheme() {
+  localStorage.setItem('px_theme', JSON.stringify(currentTheme));
+  showToast('✦ Theme saved!');
+}
+
+// Init
+applyFont(currentFont);
+applyLightMode(lightMode);
+
+// =====================
+// PALETTE
+// =====================
+function renderPalette() {
+  const grid = document.getElementById('paletteGrid');
+  grid.innerHTML = '';
+  const all = [...DEFAULT_COLORS.map(c=>({...c,custom:false})), ...customColors.map(c=>({...c,custom:true}))];
+  all.forEach(color => {
+    const wrap = document.createElement('div');
+    wrap.className = 'palette-swatch-wrap';
+    const sw = document.createElement('div');
+    sw.className = 'palette-swatch' + (disabledColors.has(color.hex) ? ' disabled' : '') + (color.custom ? ' custom-color' : '');
+    sw.style.background = color.hex;
+    sw.title = color.name;
+    sw.onclick = () => {
+      if(disabledColors.has(color.hex)) disabledColors.delete(color.hex);
+      else disabledColors.add(color.hex);
+      renderPalette();
+      if(sourceImage) debouncedConvert();
+    };
+    wrap.appendChild(sw);
+    if(color.custom) {
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'remove-custom';
+      rmBtn.textContent = '✕';
+      rmBtn.onclick = (e) => {
+        e.stopPropagation();
+        customColors = customColors.filter(c => c.hex !== color.hex);
+        localStorage.setItem('px_custom_colors', JSON.stringify(customColors));
+        renderPalette();
+        if(sourceImage) debouncedConvert();
+      };
+      wrap.appendChild(rmBtn);
+    }
+    grid.appendChild(wrap);
+  });
+}
+renderPalette();
+
+function addCustomColor() {
+  const hex = document.getElementById('addColorPicker').value;
+  const name = document.getElementById('addColorName').value.trim() || hex;
+  if(customColors.find(c=>c.hex===hex)) return;
+  customColors.push({hex, name});
+  localStorage.setItem('px_custom_colors', JSON.stringify(customColors));
+  document.getElementById('addColorName').value = '';
+  renderPalette();
+  if(sourceImage) debouncedConvert();
+}
+
+function resetPalette() {
+  if(!confirm('Reset palette to defaults? This will remove all your custom colors and re-enable all toggled colors. This cannot be undone.')) return;
+  customColors = [];
+  disabledColors = new Set();
+  localStorage.setItem('px_custom_colors', JSON.stringify(customColors));
+  renderPalette();
+  renderToolColorGrid();
+  if(sourceImage) debouncedConvert();
+  showToast('🗑 Palette reset to defaults');
+}
+let sourceImage = null;
+const fileInput = document.getElementById('fileInput');
+const uploadArea = document.getElementById('uploadArea');
+
+fileInput.onchange = e => loadImageFile(e.target.files[0]);
+
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  if(e.dataTransfer.files[0]) loadImageFile(e.dataTransfer.files[0]);
+});
+
+function loadImageFile(file) {
+  if(!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      sourceImage = img;
+      uploadArea.querySelector('.upload-icon').innerHTML = '<i data-lucide="circle-check"></i>';
+      renderIcons(uploadArea);
+      uploadArea.querySelector('.upload-text').innerHTML = `<b>${file.name}</b><br><small>${img.width}×${img.height}px</small>`;
+      convertImage();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// =====================
+// SLIDERS
+// =====================
+const debouncedConvert = debounce(convertImage, 300);
+
+function linkSlider(sliderId, inputId, callback) {
+  const slider = document.getElementById(sliderId);
+  const inp = document.getElementById(inputId);
+  slider.oninput = () => { inp.value = slider.value; callback(); };
+  inp.oninput = () => {
+    // Only sync slider while typing — don't trigger callback yet
+    const raw = +inp.value;
+    if(inp.value !== '' && !isNaN(raw)) {
+      const v = Math.max(+inp.min||0, Math.min(+inp.max||9999, raw));
+      slider.value = v;
+    }
+  };
+  inp.onblur = () => {
+    // Clamp, clean up, and trigger callback only when leaving the field
+    const v = Math.max(+inp.min||0, Math.min(+inp.max||9999, +inp.value||+inp.min||0));
+    slider.value = v; inp.value = v; callback();
+  };
+}
+
+linkSlider('pixelSlider','pixelInput', () => { if(sourceImage) debouncedConvert(); else if(canvasCols) showToast('⚠️ Pixel size can\'t be changed on shared images'); });
+linkSlider('zoomSlider','zoomInput', applyZoom);
+
+// Load saved block type preferences — all non-wood defaults OFF
+document.getElementById('includeTransparency').onchange = () => {
+  if(!canvasCols || !transpMask.length) return;
+  const includeTransparency = document.getElementById('includeTransparency').checked;
+  const canvas = document.getElementById('outputCanvas');
+  const ctx = canvas.getContext('2d');
+  pixelCounts = {};
+  for(let y = 0; y < canvasRows; y++) {
+    for(let x = 0; x < canvasCols; x++) {
+      const isTransp = transpMask[y]?.[x];
+      if(isTransp) {
+        if(includeTransparency) {
+          // Hide this pixel
+          pixelColorData[y][x] = null;
+          ctx.clearRect(x * canvasSCALE, y * canvasSCALE, canvasSCALE, canvasSCALE);
+        } else {
+          // Show with its snapped colour
+          const color = fullPixelColorData[y][x];
+          pixelColorData[y][x] = color;
+          ctx.fillStyle = color.hex;
+          ctx.fillRect(x * canvasSCALE, y * canvasSCALE, canvasSCALE, canvasSCALE);
+        }
+      }
+      if(pixelColorData[y][x]) {
+        const h = pixelColorData[y][x].hex;
+        pixelCounts[h] = (pixelCounts[h] || 0) + 1;
+      }
+    }
+  }
+  blockCache = null;
+  computeBlockMap(canvasCols, canvasRows);
+  drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  updateStats(canvasCols, canvasRows);
+};
+
+// =====================
+// SIDEBAR RESIZE
+// =====================
+(function() {
+  const handle = document.getElementById('sidebarResize');
+  const main   = document.querySelector('main');
+  if(!handle || !main) return;
+
+  const MIN = 240, MAX = 600;
+  const saved = parseInt(localStorage.getItem('px_sidebar_w'));
+  if(saved && saved >= MIN && saved <= MAX) {
+    main.style.setProperty('--sidebar-w', saved + 'px');
+  }
+
+  let dragging = false, startX = 0, startW = 0;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    startX = e.clientX;
+    startW = parseInt(getComputedStyle(main).getPropertyValue('--sidebar-w')) || 320;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const w = Math.min(MAX, Math.max(MIN, startW + (e.clientX - startX)));
+    main.style.setProperty('--sidebar-w', w + 'px');
+  });
+
+  document.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    const w = parseInt(getComputedStyle(main).getPropertyValue('--sidebar-w')) || 320;
+    localStorage.setItem('px_sidebar_w', w);
+  });
+})();
+
+document.getElementById('useVending').checked = localStorage.getItem('px_use_vending') === 'true';
+document.getElementById('useSidewaysVending').checked = localStorage.getItem('px_use_sideways_vending') === 'true';
+document.getElementById('use1x16').checked = localStorage.getItem('px_use_1x16') === 'true';
+document.getElementById('useMoreOptimising').checked = localStorage.getItem('px_use_more_optimising') === 'true';
+document.getElementById('useHorrorTable').checked = localStorage.getItem('px_use_horror') === 'true';
+document.getElementById('useBuildplate').checked = localStorage.getItem('px_use_buildplate') === 'true';
+
+function updateMoreOptimisingVisibility() {
+  const show = document.getElementById('useMoreOptimising').checked;
+  document.getElementById('moreOptimisingOptions').classList.toggle('open', show);
+}
+updateMoreOptimisingVisibility();
+
+document.getElementById('useMoreOptimising').onchange = () => {
+  localStorage.setItem('px_use_more_optimising', document.getElementById('useMoreOptimising').checked);
+  updateMoreOptimisingVisibility();
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+document.getElementById('use1x16').onchange = () => {
+  localStorage.setItem('px_use_1x16', document.getElementById('use1x16').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+document.getElementById('useHorrorTable').onchange = () => {
+  localStorage.setItem('px_use_horror', document.getElementById('useHorrorTable').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+
+document.getElementById('useVending').onchange = () => {
+  localStorage.setItem('px_use_vending', document.getElementById('useVending').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+document.getElementById('useSidewaysVending').onchange = () => {
+  localStorage.setItem('px_use_sideways_vending', document.getElementById('useSidewaysVending').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+document.getElementById('useBuildplate').onchange = () => {
+  localStorage.setItem('px_use_buildplate', document.getElementById('useBuildplate').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+function updateBlockTypeOptionsVisibility() {
+  const visible = document.getElementById('connectPixels').checked;
+  document.getElementById('blockTypeOptions').classList.toggle('open', visible);
+}
+updateBlockTypeOptionsVisibility();
+
+document.getElementById('connectPixels').onchange = () => {
+  updateBlockTypeOptionsVisibility();
+  if(sourceImage) {
+    convertImage(); // not debounced — immediate
+  } else if(canvasCols) {
+    blockCache = null; computeBlockMap(canvasCols, canvasRows);
+    drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+    updateStats(canvasCols, canvasRows);
+  } else {
+    // No image yet — just redraw outlines with current toggle state
+    if(canvasCols) drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  }
+};
+document.getElementById('ditherCheck').onchange = () => {
+  if(sourceImage) convertImage();
+  else if(canvasCols) showToast('⚠️ Dithering can\'t be changed on shared images');
+};
+
+function fitZoom() {
+  const canvas = document.getElementById('outputCanvas');
+  if(!canvas.width) return;
+  const canvasArea = document.getElementById('canvasArea');
+  const availW = canvasArea.clientWidth - 48; // minus padding
+  const availH = canvasArea.clientHeight - 48;
+  const scaleW = availW / canvas.width;
+  const scaleH = availH / canvas.height;
+  const fit = Math.min(1, scaleW, scaleH); // never scale up past 100%
+  const pct = Math.max(10, Math.round(fit * 100 / 5) * 5);
+  document.getElementById('zoomSlider').value = pct;
+  document.getElementById('zoomInput').value = pct;
+  applyZoom();
+}
+
+function resetZoom() {
+  fitZoom();
+}
+
+// =====================
+// PINCH TO ZOOM
+// =====================
+(function() {
+  const canvasArea = document.getElementById('canvasArea');
+
+  // ---- MOUSE PAN ----
+  let mouseDown = false, mouseMoved = false;
+  let panStartX, panStartY, scrollStartX, scrollStartY;
+
+  canvasArea.addEventListener('mousedown', e => {
+    // Only pan with left button, not on controls
+    if(e.button !== 0) return;
+    if(e.target.closest('input,button,.zoom-bar')) return;
+    mouseDown = true;
+    mouseMoved = false;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    scrollStartX = canvasArea.scrollLeft;
+    scrollStartY = canvasArea.scrollTop;
+    canvasArea.classList.add('panning');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if(!mouseDown) return;
+    const dx = e.clientX - panStartX;
+    const dy = e.clientY - panStartY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) mouseMoved = true;
+    canvasArea.scrollLeft = scrollStartX - dx;
+    canvasArea.scrollTop  = scrollStartY - dy;
+  });
+
+  window.addEventListener('mouseup', e => {
+    if(!mouseDown) return;
+    mouseDown = false;
+    canvasArea.classList.remove('panning');
+    // If barely moved, let tooltip/hover fire normally
+  });
+
+  // Suppress tooltip while dragging
+  canvasArea.addEventListener('click', e => {
+    if(mouseMoved) e.stopPropagation();
+  }, true);
+
+  // ---- TOUCH PAN + PINCH ZOOM ----
+  function getTouchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  function setZoom(val) {
+    const clamped = Math.min(1000, Math.max(10, Math.round(val / 5) * 5));
+    document.getElementById('zoomSlider').value = clamped;
+    document.getElementById('zoomInput').value = clamped;
+    applyZoom();
+  }
+
+  let lastDist = null;
+  let startZoom = 100;
+  let touchPanStartX, touchPanStartY, touchScrollStartX, touchScrollStartY;
+  let isPinching = false;
+
+  canvasArea.addEventListener('touchstart', e => {
+    if(e.touches.length === 2) {
+      isPinching = true;
+      lastDist = getTouchDist(e.touches);
+      startZoom = +document.getElementById('zoomInput').value;
+      e.preventDefault();
+    } else if(e.touches.length === 1) {
+      isPinching = false;
+      touchPanStartX = e.touches[0].clientX;
+      touchPanStartY = e.touches[0].clientY;
+      touchScrollStartX = canvasArea.scrollLeft;
+      touchScrollStartY = canvasArea.scrollTop;
+    }
+  }, {passive: false});
+
+  canvasArea.addEventListener('touchmove', e => {
+    if(e.touches.length === 2 && lastDist !== null) {
+      const dist = getTouchDist(e.touches);
+      const ratio = dist / lastDist;
+      setZoom(startZoom * ratio);
+      e.preventDefault();
+    } else if(e.touches.length === 1 && !isPinching) {
+      const dx = e.touches[0].clientX - touchPanStartX;
+      const dy = e.touches[0].clientY - touchPanStartY;
+
+      const canScrollX = canvasArea.scrollWidth > canvasArea.clientWidth;
+      const canScrollY = canvasArea.scrollHeight > canvasArea.clientHeight;
+
+      if(canScrollX) canvasArea.scrollLeft = touchScrollStartX - dx;
+      if(canScrollY) {
+        canvasArea.scrollTop = touchScrollStartY - dy;
+        e.preventDefault(); // only block vertical scroll if we're handling it
+      }
+      if(canScrollX && Math.abs(dx) > Math.abs(dy)) {
+        e.preventDefault(); // block page scroll when panning horizontally
+      }
+    }
+  }, {passive: false});
+
+  canvasArea.addEventListener('touchend', e => {
+    if(e.touches.length < 2) {
+      lastDist = null;
+      if(e.touches.length === 0) isPinching = false;
+    }
+  });
+})();
+
+function applyZoom() {
+  const canvas = document.getElementById('outputCanvas');
+  const overlay = document.getElementById('overlayCanvas');
+  if(!canvas.width) return;
+  const zoom = +document.getElementById('zoomInput').value / 100;
+  const w = Math.round(canvas.width * zoom);
+  const h = Math.round(canvas.height * zoom);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  overlay.style.width = w + 'px';
+  overlay.style.height = h + 'px';
+  // Set overlay internal resolution to display size so outlines are always 1px
+  overlay.width = w;
+  overlay.height = h;
+  if(canvasCols) drawBlockOutlines(canvasCols, canvasRows, canvasSCALE * zoom);
+  if(activeTool === 'paint') drawPaintGrid();
+  const area = document.getElementById('canvasArea');
+}
+
+function drawPaintGrid() {
+  const canvas = document.getElementById('outputCanvas');
+  const grid = document.getElementById('gridCanvas');
+  if(!canvas.width || !canvasCols) return;
+  const zoom = +document.getElementById('zoomInput').value / 100;
+  const SCALE = canvasSCALE * zoom;
+  const w = Math.round(canvas.width * zoom);
+  const h = Math.round(canvas.height * zoom);
+  grid.width = w;
+  grid.height = h;
+  grid.style.width = w + 'px';
+  grid.style.height = h + 'px';
+  const ctx = grid.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for(let x = 0; x <= canvasCols; x++) {
+    ctx.moveTo(Math.round(x * SCALE), 0);
+    ctx.lineTo(Math.round(x * SCALE), h);
+  }
+  for(let y = 0; y <= canvasRows; y++) {
+    ctx.moveTo(0, Math.round(y * SCALE));
+    ctx.lineTo(w, Math.round(y * SCALE));
+  }
+  ctx.stroke();
+}
+
+function getDisplayScale() {
+  const zoom = +document.getElementById('zoomInput').value / 100;
+  return canvasSCALE * zoom;
+}
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// =====================
+// COLOR MATCHING
+// =====================
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
+
+function colorDistance(r1,g1,b1, r2,g2,b2) {
+  const dr = r1-r2, dg = g1-g2, db = b1-b2;
+  return dr*dr + dg*dg + db*db;
+}
+
+function findClosestColor(r,g,b, palette) {
+  let best = null, bestD = Infinity;
+  for(const c of palette) {
+    const [cr,cg,cb] = hexToRgb(c.hex);
+    const d = colorDistance(r,g,b,cr,cg,cb);
+    if(d < bestD) { bestD = d; best = c; }
+  }
+  return best;
+}
+
+// =====================
+// CONVERT IMAGE
+// =====================
+
+let pixelColorData = []; // [y][x] = {name, hex} or null if transparent
+let pixelCounts = {};
+let transpMask = [];      // [y][x] = true if pixel was originally transparent
+let fullPixelColorData = []; // [y][x] = color (never null) — used to restore when transparency toggled off
+
+function convertImage() {
+  if(!sourceImage) return;
+
+  const pixelSize = +document.getElementById('pixelInput').value;
+  const dither = document.getElementById('ditherCheck').checked;
+  const includeTransparency = document.getElementById('includeTransparency').checked;
+  const palette = getAllActiveColors();
+  if(!palette.length) return;
+
+  // Show loading
+  const lb = document.getElementById('loadingBar');
+  const lf = document.getElementById('loadingFill');
+  lb.classList.add('active');
+  lf.style.width = '20%';
+
+  setTimeout(() => {
+    const offscreen = document.createElement('canvas');
+    const cols = pixelSize;
+    const aspect = sourceImage.height / sourceImage.width;
+    const rows = Math.max(1, Math.round(cols * aspect));
+
+    offscreen.width = cols;
+    offscreen.height = rows;
+    const octx = offscreen.getContext('2d');
+    octx.drawImage(sourceImage, 0, 0, cols, rows);
+    const imgData = octx.getImageData(0, 0, cols, rows);
+    const data = imgData.data;
+
+    // Optional: Floyd-Steinberg dithering (always treats all pixels as opaque)
+    if(dither) {
+      for(let y=0; y<rows; y++) {
+        for(let x=0; x<cols; x++) {
+          const idx = (y*cols+x)*4;
+          const or = data[idx], og = data[idx+1], ob = data[idx+2];
+          const closest = findClosestColor(or,og,ob,palette);
+          const [nr,ng,nb] = hexToRgb(closest.hex);
+          data[idx]=nr; data[idx+1]=ng; data[idx+2]=nb;
+          const er=or-nr, eg=og-ng, eb=ob-nb;
+          const pushErr = (dx,dy,f) => {
+            const nx=x+dx, ny=y+dy;
+            if(nx>=0&&nx<cols&&ny>=0&&ny<rows){
+              const ni=(ny*cols+nx)*4;
+              data[ni]  =Math.min(255,Math.max(0,data[ni]  +er*f));
+              data[ni+1]=Math.min(255,Math.max(0,data[ni+1]+eg*f));
+              data[ni+2]=Math.min(255,Math.max(0,data[ni+2]+eb*f));
+            }
+          };
+          pushErr(1,0,7/16); pushErr(-1,1,3/16); pushErr(0,1,5/16); pushErr(1,1,1/16);
+        }
+      }
+    }
+
+    lf.style.width = '60%';
+
+    // Save original alpha before dithering can overwrite it
+    const origAlpha = new Uint8Array(cols * rows);
+    for(let i = 0; i < cols * rows; i++) origAlpha[i] = imgData.data[i * 4 + 3];
+
+    // Build transparency mask and full pixel data (fullPixelColorData is never null)
+    transpMask = [];
+    fullPixelColorData = [];
+    pixelColorData = [];
+    pixelCounts = {};
+
+    for(let y=0; y<rows; y++) {
+      transpMask[y] = [];
+      fullPixelColorData[y] = [];
+      pixelColorData[y] = [];
+      for(let x=0; x<cols; x++) {
+        const idx = (y*cols+x)*4;
+        const isTransp = origAlpha[y*cols+x] < 128;
+        transpMask[y][x] = isTransp;
+        const r=data[idx], g=data[idx+1], b=data[idx+2];
+        const closest = dither
+          ? palette.find(c => { const [cr,cg,cb]=hexToRgb(c.hex); return cr===Math.round(r)&&cg===Math.round(g)&&cb===Math.round(b); }) || findClosestColor(r,g,b,palette)
+          : findClosestColor(r,g,b,palette);
+        fullPixelColorData[y][x] = closest;
+        const visible = !isTransp || !includeTransparency;
+        pixelColorData[y][x] = visible ? closest : null;
+        if(visible) pixelCounts[closest.hex] = (pixelCounts[closest.hex] || 0) + 1;
+      }
+    }
+
+    lf.style.width = '80%';
+
+    // Draw output
+    const canvas = document.getElementById('outputCanvas');
+    const overlay = document.getElementById('overlayCanvas');
+    const wrapper = document.getElementById('canvasWrapper');
+    const SCALE = 12;
+    canvas.width = cols * SCALE;
+    canvas.height = rows * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for(let y=0; y<rows; y++) {
+      for(let x=0; x<cols; x++) {
+        if(!pixelColorData[y][x]) continue; // transparent
+        ctx.fillStyle = pixelColorData[y][x].hex;
+        ctx.fillRect(x*SCALE, y*SCALE, SCALE, SCALE);
+      }
+    }
+
+    // Compute blocks then apply zoom (which sets overlay size and draws outlines at display scale)
+    computeBlockMap(cols, rows);
+    clearHistory();
+
+    lf.style.width = '100%';
+    setTimeout(() => { lb.classList.remove('active'); lf.style.width = '0%'; }, 400);
+
+    wrapper.classList.add('visible');
+    document.getElementById('zoomBar').classList.add('visible');
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('downloadBtns').style.display = 'flex';
+    document.getElementById('toolsPanel').style.display = 'block';
+    document.getElementById('colorSummaryPanel').style.display = 'block';
+
+    applyZoom();
+    setupTooltip(wrapper, cols, rows, SCALE);
+    setupCanvasInteraction(wrapper, cols, rows, SCALE);
+    renderToolColorGrid();
+    setTimeout(fitZoom, 0);
+    updateStats(cols, rows);
+  }, 20);
+}
+
+// =====================
+// STATS
+// =====================
+function updateStats(cols, rows) {
+  const bar = document.getElementById('statsBar');
+  const uniq = Object.keys(pixelCounts).length;
+  const connectEnabled = document.getElementById('connectPixels').checked;
+  const totalBlocks = connectEnabled
+    ? Object.values(blockCounts).reduce((a, b) => a + b, 0)
+    : cols * rows;
+  bar.innerHTML = `<span>${cols}×${rows}</span> pixels &nbsp;·&nbsp; <span>${uniq}</span> colors &nbsp;·&nbsp; <span>${totalBlocks}</span> ${connectEnabled ? 'blocks' : 'pixels'}`;
+  updateColorSummary(cols, rows);
+}
+
+// =====================
+// COLOR SUMMARY
+// =====================
+function updateColorSummary(cols, rows) {
+  const panel = document.getElementById('colorSummaryPanel');
+  const list = document.getElementById('colorSummaryList');
+  if(!list || !Object.keys(pixelCounts).length) return;
+  panel.style.display = 'block';
+
+  const connectEnabled = document.getElementById('connectPixels').checked;
+  const allColors = [...DEFAULT_COLORS, ...customColors];
+
+  // Count blocks per color hex by scanning blockMap for unique block origins
+  const blockCountsByHex = {};
+  if(connectEnabled && blockMap.length) {
+    const seen = new Set();
+    for(let y=0; y<rows; y++) {
+      for(let x=0; x<cols; x++) {
+        const b = blockMap[y] && blockMap[y][x];
+        if(!b) continue;
+        const key = `${b.x},${b.y}`;
+        if(seen.has(key)) continue;
+        seen.add(key);
+        const cell = pixelColorData[b.y]?.[b.x];
+        if(!cell) continue;
+        const hex = cell.hex;
+        blockCountsByHex[hex] = (blockCountsByHex[hex] || 0) + 1;
+      }
+    }
+  }
+
+  const entries = Object.entries(pixelCounts)
+    .map(([hex, pixCount]) => {
+      const color = allColors.find(c => c.hex.toLowerCase() === hex.toLowerCase()) || {name: hex, hex};
+      const displayCount = connectEnabled ? (blockCountsByHex[hex] || 0) : pixCount;
+      return {hex, name: color.name, displayCount, pixCount};
+    })
+    .sort((a, b) => b.displayCount - a.displayCount);
+
+  list.innerHTML = '';
+  const maxDisplay = Math.max(...entries.map(e => e.displayCount), 1);
+  entries.forEach(({hex, name, displayCount}) => {
+    const row = document.createElement('div');
+    row.className = 'summary-row';
+    row.innerHTML = `
+      <div class="summary-swatch" style="background:${hex}"></div>
+      <span style="min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</span>
+      <div class="summary-bar-wrap"><div class="summary-bar" style="width:${(displayCount/maxDisplay*100).toFixed(1)}%;background:${hex}"></div></div>
+      <span class="summary-count">${displayCount}</span>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// =====================
+// BLOCK OUTLINE DRAWING
+// =====================
+let blockMap = []; // [y][x] = {x, y, w, h, label} — still used for hover
+let blockCounts = {};
+let edges = new Set(); // "h,x,y" | "v,x,y"
+let blockCache = null;
+
+function getBlockFingerprint(cols, rows) {
+  const activeKey = buildActiveBlocks().map(s => `${s.w}x${s.h}`).join(',');
+  const transp = document.getElementById('includeTransparency')?.checked ? 1 : 0;
+  let colorHash = 0;
+  const step = Math.max(1, Math.floor((cols * rows) / 128));
+  for(let i = 0; i < cols * rows; i += step) {
+    const cell = pixelColorData[Math.floor(i / cols)]?.[i % cols];
+    if(cell) colorHash = ((colorHash * 31) + parseInt(cell.hex.slice(1), 16)) >>> 0;
+  }
+  return `${cols}x${rows}|${activeKey}|${transp}|${colorHash}`;
+}
+
+function computeBlockMap(cols, rows) {
+  const fp = getBlockFingerprint(cols, rows);
+  if(blockCache && blockCache.fp === fp) {
+    blockMap    = blockCache.blockMap;
+    edges       = blockCache.edges;
+    blockCounts = blockCache.blockCounts;
+    return;
+  }
+
+  blockMap    = Array.from({length:rows}, () => new Array(cols).fill(null));
+  blockCounts = {};
+  edges       = new Set();
+
+  // Build flat colors array (row-major). null = transparent / skip.
+  const colors = new Array(cols * rows);
+  for(let y = 0; y < rows; y++)
+    for(let x = 0; x < cols; x++)
+      colors[y * cols + x] = pixelColorData[y]?.[x] || null;
+
+  const defs = buildActiveBlocks(); // sorted by area desc, both orientations included
+  const MAROON = '#9d4141';
+  const MAX_REACH = 16;
+
+  // free[i] — pixel i is available for placement
+  const free = new Uint8Array(cols * rows);
+  for(let i = 0; i < colors.length; i++) free[i] = colors[i] ? 1 : 0;
+
+  // Generation counters for lazy heap invalidation
+  const gen = new Int32Array(cols * rows);
+
+  // Run-length arrays for tiebreaking (horizontal / vertical)
+  const hRun = new Int32Array(cols * rows);
+  const vRun = new Int32Array(cols * rows);
+
+  function recomputeRuns(x0, y0, x1, y1) {
+    const lx0 = Math.max(0, x0 - MAX_REACH), lx1 = Math.min(cols - 1, x1 + MAX_REACH);
+    const ly0 = Math.max(0, y0 - MAX_REACH), ly1 = Math.min(rows - 1, y1 + MAX_REACH);
+    for(let y = ly0; y <= ly1; y++) {
+      let run = 0, rhex = null;
+      for(let x = lx1; x >= lx0; x--) {
+        const c = colors[y * cols + x];
+        if(c && free[y * cols + x] && c.hex === rhex) run++;
+        else { rhex = c ? c.hex : null; run = (c && free[y * cols + x]) ? 1 : 0; }
+        hRun[y * cols + x] = run;
+      }
+    }
+    for(let x = lx0; x <= lx1; x++) {
+      let run = 0, rhex = null;
+      for(let y = ly1; y >= ly0; y--) {
+        const c = colors[y * cols + x];
+        if(c && free[y * cols + x] && c.hex === rhex) run++;
+        else { rhex = c ? c.hex : null; run = (c && free[y * cols + x]) ? 1 : 0; }
+        vRun[y * cols + x] = run;
+      }
+    }
+  }
+  recomputeRuns(0, 0, cols - 1, rows - 1);
+
+  function bestFitAt(sx, sy) {
+    const i0 = sy * cols + sx;
+    if(!free[i0]) return null;
+    const hex = colors[i0].hex;
+    let best = null;
+    for(const def of defs) {
+      if(best && def.area < best.area) break;
+      if(def.type === 'horror' && hex.toLowerCase() !== MAROON) continue;
+      const {w, h} = def;
+      if(sx + w > cols || sy + h > rows) continue;
+      let fits = true;
+      outer: for(let dy = 0; dy < h; dy++) {
+        const row = (sy + dy) * cols;
+        for(let dx = 0; dx < w; dx++) {
+          const c = colors[row + sx + dx];
+          if(!c || !free[row + sx + dx] || c.hex !== hex) { fits = false; break outer; }
+        }
+      }
+      if(!fits) continue;
+      if(!best) { best = def; continue; }
+      // Tiebreak: align longer dimension with longer run
+      const hr = hRun[i0], vr = vRun[i0];
+      const defScore  = def.w  >= def.h  ? hr : vr;
+      const bestScore = best.w >= best.h ? hr : vr;
+      if(defScore > bestScore) best = def;
+    }
+    if(!best) best = {key:'1x1', label:'1x1 Wood block', type:'wood', w:1, h:1, area:1};
+    return {sx, sy, def: best, area: best.area};
+  }
+
+  // Max-heap (sorted by area, largest first)
+  const heap = (() => {
+    const h = [];
+    const swap = (a,b) => { const t=h[a]; h[a]=h[b]; h[b]=t; };
+    const up = i => { while(i>0){const p=(i-1)>>1; if(h[i].area>h[p].area){swap(i,p);i=p;}else break;} };
+    const dn = i => { const n=h.length; for(;;){let b=i,l=2*i+1,r=2*i+2; if(l<n&&h[l].area>h[b].area)b=l; if(r<n&&h[r].area>h[b].area)b=r; if(b===i)break; swap(i,b);i=b;} };
+    return {
+      push(item){ h.push(item); up(h.length-1); },
+      pop(){ const t=h[0]; const l=h.pop(); if(h.length){h[0]=l;dn(0);} return t; },
+      get size(){ return h.length; }
+    };
+  })();
+
+  // Initial heap population
+  for(let y = 0; y < rows; y++)
+    for(let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      if(!free[i]) continue;
+      const best = bestFitAt(x, y);
+      if(best) heap.push({...best, g: gen[i]});
+    }
+
+  function placeBlock(sx, sy, def) {
+    const {key, label, w, h} = def;
+    const block = {x:sx, y:sy, w, h, label, key};
+    for(let dy = 0; dy < h; dy++) {
+      const row = (sy + dy) * cols;
+      for(let dx = 0; dx < w; dx++) {
+        const i = row + sx + dx;
+        free[i] = 0;
+        blockMap[sy+dy][sx+dx] = block;
+        gen[i]++;
+      }
+    }
+    blockCounts[key] = (blockCounts[key] || 0) + 1;
+
+    // Record block boundary edges
+    for(let dx = 0; dx < w; dx++) {
+      edges.add(`h,${sx+dx},${sy}`);
+      edges.add(`h,${sx+dx},${sy+h}`);
+    }
+    for(let dy = 0; dy < h; dy++) {
+      edges.add(`v,${sx},${sy+dy}`);
+      edges.add(`v,${sx+w},${sy+dy}`);
+    }
+
+    // Re-evaluate affected region
+    const rx0 = Math.max(0, sx-MAX_REACH),       ry0 = Math.max(0, sy-MAX_REACH);
+    const rx1 = Math.min(cols-1, sx+w-1+MAX_REACH), ry1 = Math.min(rows-1, sy+h-1+MAX_REACH);
+    recomputeRuns(rx0, ry0, rx1, ry1);
+    for(let ry = ry0; ry <= ry1; ry++) {
+      const row = ry * cols;
+      for(let rx = rx0; rx <= rx1; rx++) {
+        const i = row + rx;
+        if(!free[i]) continue;
+        gen[i]++;
+        const best = bestFitAt(rx, ry);
+        if(best) heap.push({...best, g: gen[i]});
+      }
+    }
+  }
+
+  // Main greedy loop
+  while(heap.size > 0) {
+    const entry = heap.pop();
+    const {sx, sy, def, g} = entry;
+    const i0 = sy * cols + sx;
+    // Discard stale entries
+    if(g !== gen[i0] || !free[i0]) {
+      if(free[i0]) {
+        const best = bestFitAt(sx, sy);
+        if(best) heap.push({...best, g: gen[i0]});
+      }
+      continue;
+    }
+    // Re-validate the block still fits (neighbours may have been taken since enqueue)
+    const {w, h} = def;
+    let valid = true;
+    outer: for(let dy = 0; dy < h; dy++) {
+      const row = (sy+dy)*cols;
+      for(let dx = 0; dx < w; dx++)
+        if(!free[row+sx+dx]) { valid = false; break outer; }
+    }
+    if(!valid) {
+      gen[i0]++;
+      const best = bestFitAt(sx, sy);
+      if(best) heap.push({...best, g: gen[i0]});
+      continue;
+    }
+    placeBlock(sx, sy, def);
+  }
+
+  blockCache = {
+    fp,
+    blockMap:    blockMap.map(r => [...r]),
+    edges:       new Set(edges),
+    blockCounts: {...blockCounts}
+  };
+}
+
+function drawBlockOutlines(cols, rows, SCALE) {
+  const connectEnabled = document.getElementById('connectPixels').checked;
+  const overlay = document.getElementById('overlayCanvas');
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if(connectEnabled) {
+    // Connect ON: solid black block boundaries from precomputed edge set
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(const edge of edges) {
+      const [type, xs, ys] = edge.split(',');
+      const x = +xs, y = +ys;
+      if(type === 'h') {
+        ctx.moveTo(x * SCALE, y * SCALE);
+        ctx.lineTo((x + 1) * SCALE, y * SCALE);
+      } else {
+        ctx.moveTo(x * SCALE, y * SCALE);
+        ctx.lineTo(x * SCALE, (y + 1) * SCALE);
+      }
+    }
+    ctx.stroke();
+  } else {
+    // Connect OFF: faint per-pixel grid so each pixel is visible
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for(let y = 0; y < rows; y++) {
+      for(let x = 0; x < cols; x++) {
+        if(!pixelColorData[y]?.[x]) continue;
+        if(x + 1 < cols && pixelColorData[y]?.[x+1]) {
+          ctx.moveTo((x+1)*SCALE, y*SCALE);
+          ctx.lineTo((x+1)*SCALE, (y+1)*SCALE);
+        }
+        if(y + 1 < rows && pixelColorData[y+1]?.[x]) {
+          ctx.moveTo(x*SCALE, (y+1)*SCALE);
+          ctx.lineTo((x+1)*SCALE, (y+1)*SCALE);
+        }
+      }
+    }
+    ctx.stroke();
+  }
+
+  // Outer border always
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0, 0, cols * SCALE, rows * SCALE);
+}
+
+function highlightBlock(px, py, cols, rows, SCALE) {
+  const overlay = document.getElementById('overlayCanvas');
+  const ctx = overlay.getContext('2d');
+
+  drawBlockOutlines(cols, rows, SCALE);
+
+  const connectEnabled = document.getElementById('connectPixels').checked;
+  const block = connectEnabled
+    ? (blockMap[py] && blockMap[py][px]) || {x:px,y:py,w:1,h:1,label:'1x1 Wood block'}
+    : {x:px,y:py,w:1,h:1,label:'1x1 Wood block'};
+  if(!block) return null; // transparent pixel
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,255,255,0.6)';
+  ctx.shadowBlur = 6;
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(
+    block.x * SCALE + 1,
+    block.y * SCALE + 1,
+    block.w * SCALE - 2,
+    block.h * SCALE - 2
+  );
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(
+    block.x * SCALE,
+    block.y * SCALE,
+    block.w * SCALE,
+    block.h * SCALE
+  );
+
+  return block;
+}
+
+// =====================
+// TOOLTIP
+// =====================
+function setupTooltip(wrapper, cols, rows, SCALE) {
+  const tip = document.getElementById('tooltip');
+  const tipName = document.getElementById('tipName');
+  const tipCount = document.getElementById('tipCount');
+  const tipBlock = document.getElementById('tipBlock');
+
+  wrapper.onmousemove = e => {
+    // Don't show tooltip while panning or using tools
+    if(document.getElementById('canvasArea').classList.contains('panning')) {
+      document.getElementById('tooltip').classList.remove('visible');
+      return;
+    }
+    if(activeTool === 'bucket') {
+      document.getElementById('tooltip').classList.remove('visible');
+      return;
+    }
+    const rect = document.getElementById('outputCanvas').getBoundingClientRect();
+    const canvas = document.getElementById('outputCanvas');
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const px = Math.floor(mx / SCALE);
+    const py = Math.floor(my / SCALE);
+
+    if(px < 0 || px >= cols || py < 0 || py >= rows) {
+      tip.classList.remove('visible');
+      drawBlockOutlines(cols, rows, getDisplayScale());
+      return;
+    }
+
+    const color = pixelColorData[py]?.[px];
+    if(!color) { tip.classList.remove('visible'); drawBlockOutlines(cols, rows, getDisplayScale()); return; }
+
+    const block = highlightBlock(px, py, cols, rows, getDisplayScale());
+    if(!block) return;
+
+    tipName.textContent = color.name;
+    tipName.style.color = color.hex;
+    const connectEnabled = document.getElementById('connectPixels').checked;
+    const total = cols * rows;
+
+    if(connectEnabled) {
+      const blockCount = blockCounts[block.key] || 0;
+      tipCount.textContent = `Quantity: ${blockCount}`;
+      tipBlock.textContent = `Block: ${block.label}`;
+    } else {
+      const cnt = pixelCounts[color.hex] || 0;
+      tipCount.textContent = `Quantity: ${cnt}`;
+      tipBlock.textContent = '';
+    }
+
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY - 10) + 'px';
+    tip.classList.add('visible');
+  };
+
+  wrapper.onmouseleave = () => {
+    tip.classList.remove('visible');
+    drawBlockOutlines(cols, rows, getDisplayScale());
+  };
+}
+
+// =====================
+// BLOCK TYPE DETECTION
+// =====================
+// Canonical defs — one entry per block type. Both orientations are added
+// programmatically by buildActiveBlocks(). key = "WxH" canonical (smaller dim first
+// for non-square, so "4x8" not "8x4"), used as the blockCounts key.
+const BLOCK_SHAPES = [
+  {key:"16x16", label:"16x16 Build plate",              type:"buildplate",  w:16, h:16},
+  {key:"8x8",   label:"8x8 Wood block",                 type:"wood",        w:8,  h:8 },
+  {key:"4x8",   label:"4x8 Wood block",                 type:"wood",        w:4,  h:8 },
+  {key:"2x16",  label:"2x16 Wood block",                type:"wood",        w:2,  h:16},
+  {key:"4x6",   label:"4x6 Horror table (Maroon only)", type:"horror",      w:4,  h:6 },
+  {key:"4x4",   label:"4x4 Wood block",                 type:"wood",        w:4,  h:4 },
+  {key:"2x8",   label:"2x8 Wood block",                 type:"wood",        w:2,  h:8 },
+  {key:"1x16",  label:"1x16 Wood block",                type:"wood1x16",    w:1,  h:16},
+  {key:"2x4",   label:"2x4 Wood block",                 type:"wood",        w:2,  h:4 },
+  {key:"1x8",   label:"1x8 Wood block",                 type:"wood",        w:1,  h:8 },
+  {key:"3x2",   label:"3x2 Vending machine",            type:"vending",     w:3,  h:2 },
+  {key:"2x2",   label:"2x2 Wood block",                 type:"wood",        w:2,  h:2 },
+  {key:"1x4",   label:"1x4 Wood block",                 type:"wood",        w:1,  h:4 },
+  {key:"1x3",   label:"1x3 Sideways Vending machine",   type:"vending_side",w:1,  h:3 },
+  {key:"1x2",   label:"1x2 Wood block",                 type:"wood",        w:1,  h:2 },
+  {key:"1x1",   label:"1x1 Wood block",                 type:"wood",        w:1,  h:1 },
+];
+
+// Returns a flat list of orientation objects {key,label,type,w,h,area},
+// with both orientations for non-square blocks, sorted by area descending.
+function buildActiveBlocks() {
+  const useVending      = document.getElementById('useVending')?.checked      ?? false;
+  const useBuildplate   = document.getElementById('useBuildplate')?.checked   ?? false;
+  const useMoreOpt      = document.getElementById('useMoreOptimising')?.checked ?? false;
+  const useSideways     = useMoreOpt && (document.getElementById('useSidewaysVending')?.checked ?? false);
+  const useHorror       = useMoreOpt && (document.getElementById('useHorrorTable')?.checked    ?? false);
+  const use1x16         = useMoreOpt && (document.getElementById('use1x16')?.checked           ?? false);
+
+  const result = [];
+  for(const s of BLOCK_SHAPES) {
+    if(s.type === 'buildplate'  && !useBuildplate) continue;
+    if(s.type === 'vending'     && !useVending)    continue;
+    if(s.type === 'vending_side'&& !useSideways)   continue;
+    if(s.type === 'horror'      && !useHorror)     continue;
+    if(s.type === 'wood1x16'    && !use1x16)       continue;
+    // Add canonical orientation
+    result.push({key:s.key, label:s.label, type:s.type, w:s.w, h:s.h, area:s.w*s.h});
+    // Add flipped orientation for non-square blocks
+    if(s.w !== s.h) {
+      result.push({key:s.key, label:s.label, type:s.type, w:s.h, h:s.w, area:s.w*s.h});
+    }
+  }
+  result.sort((a, b) => b.area - a.area);
+  return result;
+}
+
+// Keep getActiveBlockShapes as a thin wrapper (used by fingerprint)
+function getActiveBlockShapes() { return buildActiveBlocks(); }
+
+// =====================
+// TOAST
+// =====================
+let toastTimer;
+function showToast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// =====================
+// TOOLS
+// =====================
+let activeTool = 'pointer';
+let paintColorHex = null;
+let canvasCols = 0, canvasRows = 0, canvasSCALE = 12;
+
+function setTool(tool) {
+  activeTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool' + tool.charAt(0).toUpperCase() + tool.slice(1)).classList.add('active');
+  const wrapper = document.getElementById('canvasWrapper');
+  wrapper.classList.remove('tool-paint','tool-bucket');
+  if(tool === 'paint') wrapper.classList.add('tool-paint');
+  if(tool === 'bucket') wrapper.classList.add('tool-bucket');
+  document.getElementById('toolColorRow').classList.toggle('visible', tool === 'paint' || tool === 'bucket');
+  // Show pixel grid when painting
+  const grid = document.getElementById('gridCanvas');
+  if(tool === 'paint') { drawPaintGrid(); grid.classList.add('visible'); }
+  else { grid.classList.remove('visible'); setTimeout(() => { grid.style.display = 'none'; }, 250); }
+}
+
+// =====================
+// RECENTLY USED COLORS
+// =====================
+const MAX_RECENT = 8;
+let recentColors = [];
+
+function addToRecent(hex) {
+  recentColors = recentColors.filter(h => h !== hex);
+  recentColors.unshift(hex);
+  if(recentColors.length > MAX_RECENT) recentColors = recentColors.slice(0, MAX_RECENT);
+  renderRecentColors();
+}
+
+function renderRecentColors() {
+  const row = document.getElementById('recentRow');
+  const container = document.getElementById('recentSwatches');
+  if(!container) return;
+  container.innerHTML = '';
+  if(!recentColors.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  const allColors = getAllActiveColors();
+  recentColors.forEach(hex => {
+    const color = allColors.find(c => c.hex === hex);
+    if(!color) return;
+    const sw = document.createElement('div');
+    sw.className = 'tool-color-swatch' + (hex === paintColorHex ? ' selected' : '');
+    sw.style.background = hex;
+    sw.title = color.name;
+    sw.onclick = () => {
+      paintColorHex = hex;
+      renderToolColorGrid();
+      renderRecentColors();
+    };
+    container.appendChild(sw);
+  });
+}
+
+function renderToolColorGrid() {
+  const grid = document.getElementById('toolColorGrid');
+  grid.innerHTML = '';
+  const colors = getAllActiveColors();
+  if(!paintColorHex || !colors.find(c=>c.hex===paintColorHex)) {
+    paintColorHex = colors[0]?.hex || null;
+  }
+  colors.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'tool-color-swatch' + (c.hex === paintColorHex ? ' selected' : '');
+    sw.style.background = c.hex;
+    sw.title = c.name;
+    sw.onclick = () => {
+      paintColorHex = c.hex;
+      grid.querySelectorAll('.tool-color-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+      renderRecentColors();
+    };
+    grid.appendChild(sw);
+  });
+  renderRecentColors();
+}
+
+// =====================
+// UNDO / REDO
+// =====================
+const MAX_HISTORY = 50;
+let undoStack = [];
+let redoStack = [];
+
+function snapshotForUndo() {
+  const snap = {
+    pixels: pixelColorData.map(row => row.slice()),
+    bMap:   blockMap.map(row => row.slice()),
+    bCounts: {...blockCounts},
+    bEdges: new Set(edges),
+  };
+  undoStack.push(snap);
+  if(undoStack.length > MAX_HISTORY) undoStack.shift();
+  redoStack = [];
+  updateUndoButtons();
+}
+
+function applySnapshot(snap) {
+  pixelColorData = snap.pixels.map(row => row.slice());
+  pixelCounts = {};
+  for(let y = 0; y < pixelColorData.length; y++)
+    for(let x = 0; x < pixelColorData[y].length; x++) {
+      if(!pixelColorData[y][x]) continue;
+      const h = pixelColorData[y][x].hex;
+      pixelCounts[h] = (pixelCounts[h] || 0) + 1;
+    }
+  // Restore block map & edges directly — no recompute needed
+  blockMap    = snap.bMap.map(row => row.slice());
+  blockCounts = {...snap.bCounts};
+  edges       = new Set(snap.bEdges);
+  blockCache  = null; // fingerprint may differ from restored state
+
+  const canvas = document.getElementById('outputCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for(let y = 0; y < pixelColorData.length; y++)
+    for(let x = 0; x < pixelColorData[y].length; x++) {
+      if(!pixelColorData[y][x]) continue;
+      ctx.fillStyle = pixelColorData[y][x].hex;
+      ctx.fillRect(x * canvasSCALE, y * canvasSCALE, canvasSCALE, canvasSCALE);
+    }
+  drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  updateStats(canvasCols, canvasRows);
+  updateUndoButtons();
+}
+
+function undo() {
+  if(!undoStack.length) { showToast('Nothing to undo'); return; }
+  const current = {
+    pixels: pixelColorData.map(row => row.slice()),
+    bMap:   blockMap.map(row => row.slice()),
+    bCounts: {...blockCounts},
+    bEdges: new Set(edges),
+  };
+  redoStack.push(current);
+  applySnapshot(undoStack.pop());
+  showToast('↩ Undo');
+}
+
+function redo() {
+  if(!redoStack.length) { showToast('Nothing to redo'); return; }
+  const current = {
+    pixels: pixelColorData.map(row => row.slice()),
+    bMap:   blockMap.map(row => row.slice()),
+    bCounts: {...blockCounts},
+    bEdges: new Set(edges),
+  };
+  undoStack.push(current);
+  applySnapshot(redoStack.pop());
+  showToast('↪ Redo');
+}
+
+function updateUndoButtons() {
+  const u = document.getElementById('toolUndo');
+  const r = document.getElementById('toolRedo');
+  if(u) u.style.opacity = undoStack.length ? '1' : '0.3';
+  if(r) r.style.opacity = redoStack.length ? '1' : '0.3';
+}
+
+function clearHistory() {
+  undoStack = []; redoStack = [];
+  blockCache = null;
+  updateUndoButtons();
+}
+
+function paintPixel(px, py, skipSnapshot) {
+  if(!pixelColorData[py]?.[px] || !paintColorHex) return;
+  const newColor = getAllActiveColors().find(c => c.hex === paintColorHex);
+  if(!newColor) return;
+  const oldHex = pixelColorData[py][px].hex;
+  if(oldHex === paintColorHex) return;
+
+  if(!skipSnapshot) snapshotForUndo();
+
+  // Track recently used
+  addToRecent(paintColorHex);
+
+  // Update data
+  pixelCounts[oldHex] = (pixelCounts[oldHex] || 1) - 1;
+  pixelColorData[py][px] = newColor;
+  pixelCounts[paintColorHex] = (pixelCounts[paintColorHex] || 0) + 1;
+
+  // Redraw pixel on canvas
+  const canvas = document.getElementById('outputCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = paintColorHex;
+  ctx.fillRect(px * canvasSCALE, py * canvasSCALE, canvasSCALE, canvasSCALE);
+
+  blockCache = null; computeBlockMap(canvasCols, canvasRows);
+  drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  updateStats(canvasCols, canvasRows);
+}
+
+function bucketFill(px, py) {
+  if(!pixelColorData[py]?.[px] || !paintColorHex) return;
+  const targetHex = pixelColorData[py][px].hex;
+  if(targetHex === paintColorHex) return;
+  const newColor = getAllActiveColors().find(c => c.hex === paintColorHex);
+  if(!newColor) return;
+
+  snapshotForUndo();
+  addToRecent(paintColorHex);
+  const connectEnabled = document.getElementById('connectPixels').checked;
+  const changed = [];
+
+  if(connectEnabled && blockMap[py]?.[px]) {
+    // Paint the entire block this pixel belongs to
+    const block = blockMap[py][px];
+    for(let dy=0; dy<block.h; dy++)
+      for(let dx=0; dx<block.w; dx++)
+        changed.push([block.x+dx, block.y+dy]);
+  } else {
+    // Paint just the single pixel
+    changed.push([px, py]);
+  }
+
+  const canvas = document.getElementById('outputCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = paintColorHex;
+  for(const [fx, fy] of changed) {
+    pixelCounts[targetHex] = (pixelCounts[targetHex] || 1) - 1;
+    pixelColorData[fy][fx] = newColor;
+    pixelCounts[paintColorHex] = (pixelCounts[paintColorHex] || 0) + 1;
+    ctx.fillRect(fx * canvasSCALE, fy * canvasSCALE, canvasSCALE, canvasSCALE);
+  }
+  blockCache = null; computeBlockMap(canvasCols, canvasRows);
+  drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  updateStats(canvasCols, canvasRows);
+}
+
+function setupCanvasInteraction(wrapper, cols, rows, SCALE) {
+  canvasCols = cols; canvasRows = rows; canvasSCALE = SCALE;
+
+  // Prevent duplicate listeners on reconvert
+  if(wrapper._interactionSetup) return;
+  wrapper._interactionSetup = true;
+
+  let isPainting = false;
+  let strokeSnapped = false; // ensure only one snapshot per stroke
+
+  function getPixelFromEvent(e) {
+    const canvas = document.getElementById('outputCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const mx = (clientX - rect.left) * scaleX;
+    const my = (clientY - rect.top) * scaleY;
+    return [Math.floor(mx / canvasSCALE), Math.floor(my / canvasSCALE)];
+  }
+
+  wrapper.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    if(activeTool === 'paint') {
+      isPainting = true;
+      strokeSnapped = false;
+      const [px, py] = getPixelFromEvent(e);
+      if(px >= 0 && px < cols && py >= 0 && py < rows) {
+        snapshotForUndo();
+        strokeSnapped = true;
+        paintPixel(px, py, true);
+      }
+      e.stopPropagation();
+    } else if(activeTool === 'bucket') {
+      const [px, py] = getPixelFromEvent(e);
+      if(px >= 0 && px < cols && py >= 0 && py < rows) bucketFill(px, py);
+      e.stopPropagation();
+    }
+  });
+
+  wrapper.addEventListener('mousemove', e => {
+    if(isPainting && activeTool === 'paint') {
+      const [px, py] = getPixelFromEvent(e);
+      if(px >= 0 && px < cols && py >= 0 && py < rows) {
+        if(!strokeSnapped) { snapshotForUndo(); strokeSnapped = true; }
+        paintPixel(px, py, true);
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', () => { isPainting = false; strokeSnapped = false; });
+
+  // Touch paint
+  wrapper.addEventListener('touchstart', e => {
+    if(activeTool === 'paint' || activeTool === 'bucket') {
+      if(e.touches.length === 1) {
+        const [px, py] = getPixelFromEvent(e);
+        if(px >= 0 && px < cols && py >= 0 && py < rows) {
+          if(activeTool === 'paint') {
+            isPainting = true;
+            strokeSnapped = false;
+            snapshotForUndo();
+            strokeSnapped = true;
+            paintPixel(px, py, true);
+          } else {
+            bucketFill(px, py);
+          }
+        }
+        e.stopPropagation();
+      }
+    }
+  }, {passive: true});
+
+  wrapper.addEventListener('touchmove', e => {
+    if(isPainting && activeTool === 'paint' && e.touches.length === 1) {
+      const [px, py] = getPixelFromEvent(e);
+      if(px >= 0 && px < cols && py >= 0 && py < rows) {
+        if(!strokeSnapped) { snapshotForUndo(); strokeSnapped = true; }
+        paintPixel(px, py, true);
+      }
+      e.stopPropagation();
+    }
+  }, {passive: true});
+
+  wrapper.addEventListener('touchend', () => { isPainting = false; strokeSnapped = false; });
+}
+
+// =====================
+// IMPORT PALETTE FROM IMAGE
+// =====================
+document.getElementById('importPaletteInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const off = document.createElement('canvas');
+      // Sample at small size to get dominant colors
+      const size = Math.min(img.width, img.height, 64);
+      off.width = size; off.height = size;
+      const ctx = off.getContext('2d');
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      const colorMap = {};
+      for(let i = 0; i < data.length; i += 4) {
+        if(data[i+3] < 128) continue; // skip transparent
+        // Quantize to reduce noise
+        const r = Math.round(data[i]/16)*16;
+        const g = Math.round(data[i+1]/16)*16;
+        const b = Math.round(data[i+2]/16)*16;
+        const hex = '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+        colorMap[hex] = (colorMap[hex]||0) + 1;
+      }
+      // Sort by frequency, take top 32
+      const sorted = Object.entries(colorMap).sort((a,b)=>b[1]-a[1]).slice(0,32);
+      let added = 0;
+      sorted.forEach(([hex]) => {
+        if(!DEFAULT_COLORS.find(c=>c.hex===hex) && !customColors.find(c=>c.hex===hex)) {
+          customColors.push({hex, name: hex});
+          added++;
+        }
+      });
+      localStorage.setItem('px_custom_colors', JSON.stringify(customColors));
+      renderPalette();
+      renderToolColorGrid();
+      showToast(`✅ Imported ${added} color${added!==1?'s':''} from image`);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+// =====================
+// COPY TO CLIPBOARD
+// =====================
+function copyToClipboard(withOutlines) {
+  const canvas = document.getElementById('outputCanvas');
+  let sourceCanvas = canvas;
+  if(withOutlines) {
+    const overlay = document.getElementById('overlayCanvas');
+    const temp = document.createElement('canvas');
+    temp.width = canvas.width; temp.height = canvas.height;
+    const ctx = temp.getContext('2d');
+    ctx.drawImage(canvas, 0, 0);
+    ctx.drawImage(overlay, 0, 0);
+    sourceCanvas = temp;
+  }
+  sourceCanvas.toBlob(blob => {
+    try {
+      navigator.clipboard.write([new ClipboardItem({'image/png': blob})]).then(() => {
+        showToast('📋 Copied to clipboard!');
+      }).catch(() => showToast('⚠️ Clipboard not supported in this browser'));
+    } catch(e) {
+      showToast('⚠️ Clipboard not supported in this browser');
+    }
+  });
+}
+
+// =====================
+// URL SHARE
+// =====================
+
+// Hash format: #i:<imagedata>  or  #p:<palettedata>
+// Settings are packed as a query-string prefix before the base64 blob:
+// e.g.  #i:ps=32&cn=1&dt=0;<base64>
+
+function getSettings() {
+  return {
+    ps: +document.getElementById('pixelInput').value,
+    cn: document.getElementById('connectPixels').checked ? 1 : 0,
+    dt: document.getElementById('ditherCheck').checked ? 1 : 0,
+  };
+}
+
+function applySettings(s) {
+  if(s.ps) {
+    document.getElementById('pixelInput').value = s.ps;
+    document.getElementById('pixelSlider').value = s.ps;
+  }
+  if(s.cn !== undefined) document.getElementById('connectPixels').checked = !!s.cn;
+  if(s.dt !== undefined) document.getElementById('ditherCheck').checked = !!s.dt;
+}
+
+function encodeState() {
+  if(!pixelColorData.length) return null;
+  const rows = pixelColorData.length;
+  const cols = pixelColorData[0].length;
+
+  const palSet = [];
+  const palIndex = {};
+  for(let y=0; y<rows; y++) for(let x=0; x<cols; x++) {
+    const h = pixelColorData[y][x].hex;
+    if(palIndex[h] === undefined) { palIndex[h] = palSet.length; palSet.push(pixelColorData[y][x]); }
+  }
+
+  const rle = [];
+  let run = 1, last = palIndex[pixelColorData[0][0].hex];
+  for(let i=1; i<rows*cols; i++) {
+    const y = Math.floor(i/cols), x = i%cols;
+    const idx = palIndex[pixelColorData[y][x].hex];
+    if(idx === last && run < 255) { run++; }
+    else { rle.push(run, last); run=1; last=idx; }
+  }
+  rle.push(run, last);
+
+  const bytes = new Uint8Array(4 + 2 + palSet.length*3 + 2 + rle.length);
+  let off = 0;
+  bytes[off++] = cols >> 8; bytes[off++] = cols & 0xff;
+  bytes[off++] = rows >> 8; bytes[off++] = rows & 0xff;
+  bytes[off++] = palSet.length >> 8; bytes[off++] = palSet.length & 0xff;
+  for(const c of palSet) {
+    const r=parseInt(c.hex.slice(1,3),16), g=parseInt(c.hex.slice(3,5),16), b=parseInt(c.hex.slice(5,7),16);
+    bytes[off++]=r; bytes[off++]=g; bytes[off++]=b;
+  }
+  for(const v of rle) bytes[off++] = v;
+
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  const s = getSettings();
+  return `ps=${s.ps}&cn=${s.cn}&dt=${s.dt};` + btoa(bin);
+}
+
+function decodeState(raw) {
+  try {
+    let settingsStr = '', b64 = raw;
+    if(raw.includes(';')) { [settingsStr, b64] = raw.split(';'); }
+
+    const settings = {};
+    settingsStr.split('&').forEach(pair => {
+      const [k,v] = pair.split('=');
+      if(k) settings[k] = isNaN(v) ? v : +v;
+    });
+
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    let off = 0;
+    const cols = (bytes[off++]<<8)|bytes[off++];
+    const rows = (bytes[off++]<<8)|bytes[off++];
+    const palLen = (bytes[off++]<<8)|bytes[off++];
+    const palette = [];
+    for(let i=0;i<palLen;i++) {
+      const r=bytes[off++],g=bytes[off++],b=bytes[off++];
+      const hex='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+      const known = [...DEFAULT_COLORS,...customColors].find(c=>c.hex===hex);
+      palette.push(known || {hex, name:hex});
+    }
+    const pixels = [];
+    while(off < bytes.length) {
+      const count = bytes[off++], idx = bytes[off++];
+      for(let i=0;i<count;i++) pixels.push(palette[idx]);
+    }
+    if(pixels.length !== cols*rows) return null;
+    return {cols, rows, pixels, settings};
+  } catch(e) { return null; }
+}
+
+function encodePalette() {
+  // Encode custom colors + disabled default colors
+  const data = {
+    custom: customColors,
+    disabled: [...disabledColors],
+  };
+  return 'p;' + btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+}
+
+function decodePalette(raw) {
+  try {
+    const b64 = raw.startsWith('p;') ? raw.slice(2) : raw;
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  } catch(e) { return null; }
+}
+
+function shareURL() {
+  const enc = encodeState();
+  if(!enc) { showToast('⚠️ No image to share yet'); return; }
+  const url = location.href.split('#')[0] + '#i:' + enc;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗 Share link copied!');
+  }).catch(() => prompt('Copy this share URL:', url));
+}
+
+function sharePalette() {
+  const enc = encodePalette();
+  const url = location.href.split('#')[0] + '#' + enc;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🎨 Palette link copied!');
+  }).catch(() => prompt('Copy this palette URL:', url));
+}
+
+function loadFromHash() {
+  const hash = location.hash.slice(1);
+  if(!hash) return;
+
+  // Palette share
+  if(hash.startsWith('p;')) {
+    const data = decodePalette(hash);
+    if(!data) return;
+    if(data.custom?.length) {
+      data.custom.forEach(c => {
+        if(!customColors.find(x=>x.hex===c.hex)) customColors.push(c);
+      });
+      localStorage.setItem('px_custom_colors', JSON.stringify(customColors));
+    }
+    if(data.disabled?.length) {
+      data.disabled.forEach(h => disabledColors.add(h));
+    }
+    renderPalette();
+    renderToolColorGrid();
+    showToast(`🎨 Palette loaded! ${data.custom?.length || 0} custom color${data.custom?.length !== 1 ? 's' : ''} added`);
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
+
+  // Image share
+  const raw = hash.startsWith('i:') ? hash.slice(2) : hash;
+  const state = decodeState(raw);
+  if(!state) return;
+  const {cols, rows, pixels, settings} = state;
+  const SCALE = 12;
+
+  if(settings && Object.keys(settings).length) applySettings(settings);
+
+  pixelColorData = [];
+  pixelCounts = {};
+  for(let y=0;y<rows;y++) {
+    pixelColorData[y] = [];
+    for(let x=0;x<cols;x++) {
+      const c = pixels[y*cols+x];
+      pixelColorData[y][x] = c;
+      pixelCounts[c.hex] = (pixelCounts[c.hex]||0)+1;
+    }
+  }
+
+  const canvas = document.getElementById('outputCanvas');
+  const overlay = document.getElementById('overlayCanvas');
+  const wrapper = document.getElementById('canvasWrapper');
+  canvas.width = cols*SCALE; canvas.height = rows*SCALE;
+  overlay.width = cols*SCALE; overlay.height = rows*SCALE;
+  const ctx = canvas.getContext('2d');
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) {
+    ctx.fillStyle = pixelColorData[y][x].hex;
+    ctx.fillRect(x*SCALE, y*SCALE, SCALE, SCALE);
+  }
+  computeBlockMap(cols, rows);
+  wrapper.classList.add('visible');
+  document.getElementById('zoomBar').classList.add('visible');
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('downloadBtns').style.display = 'flex';
+  document.getElementById('toolsPanel').style.display = 'block';
+  document.getElementById('colorSummaryPanel').style.display = 'block';
+  setupTooltip(wrapper, cols, rows, SCALE);
+  setupCanvasInteraction(wrapper, cols, rows, SCALE);
+  renderToolColorGrid();
+  updateStats(cols, rows);
+  setTimeout(fitZoom, 0);
+  showToast('🔗 Loaded shared image!');
+  history.replaceState(null, '', location.pathname);
+}
+
+document.getElementById('shareBtn').onclick = shareURL;
+document.getElementById('sharePaletteBtn').onclick = sharePalette;
+document.getElementById('optionsBtn').onclick = () => document.getElementById('optionsModal').classList.add('open');
+document.getElementById('optionsModal').addEventListener('click', e => { if(e.target === document.getElementById('optionsModal')) document.getElementById('optionsModal').classList.remove('open'); });
+window.addEventListener('load', loadFromHash);
+
+// =====================
+// KEYBOARD SHORTCUTS
+// =====================
+document.addEventListener('keydown', e => {
+  // Ctrl+Z / Ctrl+Y — work even in inputs
+  if(e.ctrlKey || e.metaKey) {
+    if(e.key === 'z' || e.key === 'Z') { e.preventDefault(); undo(); return; }
+    if(e.key === 'y' || e.key === 'Y') { e.preventDefault(); redo(); return; }
+  }
+  // Don't fire other shortcuts when typing in inputs
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  switch(e.key) {
+    case 'p': case 'P': setTool('paint'); showToast('✏️ Paint tool'); break;
+    case 'b': case 'B': setTool('bucket'); showToast('🪣 Bucket tool'); break;
+    case 'Escape': setTool('pointer'); showToast('👆 Pointer tool'); break;
+    case '+': case '=': {
+      const v = Math.min(1000, (+document.getElementById('zoomInput').value) + 10);
+      document.getElementById('zoomSlider').value = v;
+      document.getElementById('zoomInput').value = v;
+      applyZoom(); break;
+    }
+    case '-': case '_': {
+      const v = Math.max(10, (+document.getElementById('zoomInput').value) - 10);
+      document.getElementById('zoomSlider').value = v;
+      document.getElementById('zoomInput').value = v;
+      applyZoom(); break;
+    }
+    case 'r': case 'R': resetZoom(); break;
+  }
+});
+
+function downloadImage(withOutlines) {
+  const canvas = document.getElementById('outputCanvas');
+  const overlay = document.getElementById('overlayCanvas');
+
+  if(withOutlines) {
+    // Composite pixel art + overlay onto a temp canvas at full resolution
+    const temp = document.createElement('canvas');
+    temp.width = canvas.width;
+    temp.height = canvas.height;
+    const ctx = temp.getContext('2d');
+    ctx.drawImage(canvas, 0, 0);
+    ctx.drawImage(overlay, 0, 0);
+    const a = document.createElement('a');
+    a.download = 'pixel-art-outlines.png';
+    a.href = temp.toDataURL('image/png');
+    a.click();
+  } else {
+    const a = document.createElement('a');
+    a.download = 'pixel-art.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }
+}
+</script>
+<!-- INFO POPOVER -->
+<div class="info-popover" id="infoPopover"></div>
+
+<script>
+// =====================
+// INFO POPOVERS
+// =====================
+const INFO_TEXT = {
+  'pixels-per-side': {
+    title: 'Pixels Per Side',
+    body: 'Controls how many pixels wide your output image is. Lower = chunkier/more pixelated. Higher = more detail. 16–64 is the sweet spot for classic pixel art looks.'
+  },
+  'zoom': {
+    title: 'Zoom',
+    body: 'Zooms into the canvas preview so you can inspect individual pixels up close. Doesn\'t affect the output — just the view.'
+  },
+  'connect-pixels': {
+    title: 'Connect Pixels',
+    body: 'When hovering a pixel, if it and its neighbours all share the same color, it detects what rectangular block shape they form (e.g. 2×2, 4×8). Shown in the tooltip. Great for figuring out efficient block placement!'
+  },
+  'dithering': {
+    title: 'Dithering',
+    body: 'Uses Floyd-Steinberg dithering to blend colors more naturally. Instead of hard color snapping, it scatters pixel errors to neighbouring pixels, creating gradients using patterns. Makes images look smoother but less "clean".'
+  },
+  'palette': {
+    title: 'Color Palette',
+    body: 'These are the only colors that will appear in your pixel art. Every pixel is matched to its closest color in the active palette. Click any swatch to toggle it off. Add your own custom colors with the picker below — custom colors can be removed, default ones can\'t.'
+  },
+};
+
+const popover = document.getElementById('infoPopover');
+let activeBtn = null;
+let hideTimeout = null;
+
+function showPopover(btn, key) {
+  const info = INFO_TEXT[key];
+  if (!info) return;
+  clearTimeout(hideTimeout);
+  popover.innerHTML = `<strong>${info.title}</strong>${info.body}`;
+
+  // Position
+  const rect = btn.getBoundingClientRect();
+  const popW = 230;
+  let left = rect.left;
+  if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+  let top = rect.bottom + 8;
+  if (top + 120 > window.innerHeight) top = rect.top - 120;
+
+  popover.style.left = left + 'px';
+  popover.style.top = top + 'px';
+  popover.classList.add('visible');
+  if (activeBtn && activeBtn !== btn) activeBtn.classList.remove('active');
+  btn.classList.add('active');
+  activeBtn = btn;
+}
+
+function hidePopover() {
+  hideTimeout = setTimeout(() => {
+    popover.classList.remove('visible');
+    if (activeBtn) { activeBtn.classList.remove('active'); activeBtn = null; }
+  }, 120);
+}
+
+document.querySelectorAll('.info-btn').forEach(btn => {
+  const key = btn.dataset.info;
+
+  // Desktop: hover
+  btn.addEventListener('mouseenter', e => { e.stopPropagation(); showPopover(btn, key); });
+  btn.addEventListener('mouseleave', hidePopover);
+  popover.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+  popover.addEventListener('mouseleave', hidePopover);
+
+  // Mobile: tap to toggle
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (btn.classList.contains('active')) {
+      hidePopover();
+    } else {
+      showPopover(btn, key);
+    }
+  });
+});
+
+// Tap outside to close on mobile
+document.addEventListener('click', e => {
+  if (!e.target.closest('.info-btn') && !e.target.closest('.info-popover')) {
+    hidePopover();
+  }
+});
+
+// Inline SVG icon system (replaces Lucide CDN for offline/preview use)
+const ICONS = {
+  'palette':          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+  'link':             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  'sparkles':         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  'upload':           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+  'grid-2x2':         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+  'settings-2':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>',
+  'paintbrush-2':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.58 16.5h12.85"/></svg>',
+  'mouse-pointer-2':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></svg>',
+  'pencil':           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>',
+  'paint-bucket':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m19 11-8-8-8.5 8.5a5.5 5.5 0 0 0 7.78 7.78Z"/><path d="m19 11 2 2a2.72 2.72 0 0 1 0 3.84l-.34.34a2.72 2.72 0 0 1-3.85 0l-2.84-2.84a2.72 2.72 0 0 1 0-3.84l.34-.34Z"/><path d="m3.5 11.5 1.79 1.79"/></svg>',
+  'undo-2':           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>',
+  'redo-2':           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/></svg>',
+  'swatch-book':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M11 2v16"/><path d="m21.17 10.17-4.24-4.24-5.66 5.66 4.24 4.24a3 3 0 0 0 4.24 0l1.41-1.41a3 3 0 0 0 .01-4.25z"/></svg>',
+  'trash-2':          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+  'camera':           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+  'bar-chart-3':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
+  'zoom-in':          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
+  'image-plus':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><line x1="16" y1="5" x2="22" y2="5"/><line x1="19" y1="2" x2="19" y2="8"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+  'image':            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  'x':                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  'download':         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  'clipboard':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
+  'clipboard-copy':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M16 4h2a2 2 0 0 1 2 2v4"/><path d="M21 14H11"/><path d="m15 10-4 4 4 4"/></svg>',
+  'circle-check':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+  'house':            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+};
+
+function renderIcons(root) {
+  (root || document).querySelectorAll('i[data-lucide]').forEach(el => {
+    const name = el.getAttribute('data-lucide');
+    if(!ICONS[name]) return;
+    const wrapper = document.createElement('span');
+    wrapper.innerHTML = ICONS[name];
+    const svg = wrapper.querySelector('svg');
+    if(!svg) return;
+    el.replaceWith(svg);
+  });
+}
+renderIcons();
+</script>
+</body>
+</html>
