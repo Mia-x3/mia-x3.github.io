@@ -1781,6 +1781,14 @@ const uploadArea = document.getElementById('uploadArea');
 
 fileInput.onchange = e => loadImageFile(e.target.files[0]);
 
+// Ctrl+V paste image
+document.addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if(!item) return;
+  const file = item.getAsFile();
+  if(file) { loadImageFile(file); showToast('📋 Image pasted!'); }
+});
+
 uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
 uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
 uploadArea.addEventListener('drop', e => {
