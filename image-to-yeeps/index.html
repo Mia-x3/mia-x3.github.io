@@ -3115,23 +3115,20 @@ function clearHistory() {
 }
 
 function paintPixel(px, py, skipSnapshot) {
-  if(!pixelColorData[py]?.[px] || !paintColorHex) return;
+  if(px < 0 || px >= canvasCols || py < 0 || py >= canvasRows || !paintColorHex) return;
   const newColor = getAllActiveColors().find(c => c.hex === paintColorHex);
   if(!newColor) return;
-  const oldHex = pixelColorData[py][px].hex;
+  const oldHex = pixelColorData[py]?.[px]?.hex || null;
   if(oldHex === paintColorHex) return;
 
   if(!skipSnapshot) snapshotForUndo();
 
-  // Track recently used
   addToRecent(paintColorHex);
 
-  // Update data
-  pixelCounts[oldHex] = (pixelCounts[oldHex] || 1) - 1;
+  if(oldHex) pixelCounts[oldHex] = (pixelCounts[oldHex] || 1) - 1;
   pixelColorData[py][px] = newColor;
   pixelCounts[paintColorHex] = (pixelCounts[paintColorHex] || 0) + 1;
 
-  // Redraw pixel on canvas
   const canvas = document.getElementById('outputCanvas');
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = paintColorHex;
@@ -3465,6 +3462,7 @@ function applySettings(s) {
   if(s.ps) { document.getElementById('pixelInput').value = s.ps; document.getElementById('pixelSlider').value = s.ps; }
   if(s.cn !== undefined) document.getElementById('connectPixels').checked = !!s.cn;
   if(s.dt !== undefined) document.getElementById('ditherCheck').checked = !!s.dt;
+  updateBlockTypeOptionsVisibility();
 }
 
 function buildImageBytes() {
@@ -3506,7 +3504,7 @@ function parseImageBytes(bytes) {
     const r=bytes[off++],g=bytes[off++],b=bytes[off++];
     if(r===255&&g===0&&b===255) { palette.push(null); continue; }
     const hex='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-    const known=[...DEFAULT_COLORS,...customColors].find(c=>c.hex===hex);
+    const known=[...DEFAULT_COLORS,...customColors].find(c=>c.hex.toLowerCase()===hex.toLowerCase());
     palette.push(known||{hex,name:hex});
   }
   const pixels=[];
