@@ -1973,6 +1973,10 @@ function resetZoom() {
   let mouseDown = false, mouseMoved = false;
   let panStartX, panStartY, scrollStartX, scrollStartY;
 
+  canvasArea.addEventListener('scroll', () => {
+    document.getElementById('tooltip').classList.remove('visible');
+  }, {passive: true});
+
   canvasArea.addEventListener('mousedown', e => {
     // Only pan with left button, not on controls
     if(e.button !== 0) return;
@@ -2075,6 +2079,7 @@ function resetZoom() {
 })();
 
 function applyZoom() {
+  document.getElementById('tooltip').classList.remove('visible');
   const canvas = document.getElementById('outputCanvas');
   const overlay = document.getElementById('overlayCanvas');
   if(!canvas.width) return;
@@ -2723,7 +2728,9 @@ function setupTooltip(wrapper, cols, rows, SCALE) {
   const tipCount = document.getElementById('tipCount');
   const tipBlock = document.getElementById('tipBlock');
 
+  let lastMouseEvent = null;
   wrapper.onmousemove = e => {
+    lastMouseEvent = e;
     // Don't show tooltip while panning or using tools
     if(document.getElementById('canvasArea').classList.contains('panning')) {
       document.getElementById('tooltip').classList.remove('visible');
@@ -2769,9 +2776,18 @@ function setupTooltip(wrapper, cols, rows, SCALE) {
       tipBlock.textContent = '';
     }
 
-    tip.style.left = (e.clientX + 14) + 'px';
-    tip.style.top = (e.clientY - 10) + 'px';
+    // Position tooltip, keeping it within viewport
     tip.classList.add('visible');
+    const tipRect = tip.getBoundingClientRect();
+    const margin = 8;
+    let tx = e.clientX + 14;
+    let ty = e.clientY - 10;
+    if(tx + tipRect.width > window.innerWidth - margin) tx = e.clientX - tipRect.width - 14;
+    if(ty + tipRect.height > window.innerHeight - margin) ty = window.innerHeight - tipRect.height - margin;
+    if(ty < margin) ty = margin;
+    if(tx < margin) tx = margin;
+    tip.style.left = tx + 'px';
+    tip.style.top  = ty + 'px';
   };
 
   wrapper.onmouseleave = () => {
