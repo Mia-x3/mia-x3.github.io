@@ -1356,7 +1356,7 @@
       <label class="check-row">
         <input type="checkbox" id="useMoreOptimising">
         <span class="custom-check"></span>
-        <span class="check-label">More optimising <button class="info-btn" data-info="more-optimising">?</button></span>
+        <span class="check-label">More optimizing <button class="info-btn" data-info="more-optimizing">?</button></span>
       </label>
       <div id="moreOptimisingOptions" style="padding-left:22px;">
         <label class="check-row" id="useSidewaysVendingRow">
@@ -1789,7 +1789,7 @@ document.getElementById('includeTransparency').onchange = () => {
 document.getElementById('useVending').checked = localStorage.getItem('px_use_vending') === 'true';
 document.getElementById('useSidewaysVending').checked = localStorage.getItem('px_use_sideways_vending') === 'true';
 document.getElementById('use1x16').checked = localStorage.getItem('px_use_1x16') === 'true';
-document.getElementById('useMoreOptimising').checked = localStorage.getItem('px_use_more_optimising') === 'true';
+document.getElementById('useMoreOptimising').checked = localStorage.getItem('px_use_more_optimizing') === 'true';
 document.getElementById('useHorrorTable').checked = localStorage.getItem('px_use_horror') === 'true';
 document.getElementById('useBuildplate').checked = localStorage.getItem('px_use_buildplate') === 'true';
 
@@ -1800,7 +1800,7 @@ function updateMoreOptimisingVisibility() {
 updateMoreOptimisingVisibility();
 
 document.getElementById('useMoreOptimising').onchange = () => {
-  localStorage.setItem('px_use_more_optimising', document.getElementById('useMoreOptimising').checked);
+  localStorage.setItem('px_use_more_optimizing', document.getElementById('useMoreOptimising').checked);
   updateMoreOptimisingVisibility();
   if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
 };
@@ -3374,7 +3374,7 @@ const INFO_TEXT = {
     title: 'Dithering',
     body: 'Uses Floyd-Steinberg dithering to blend colors more naturally. Instead of hard color snapping, it scatters pixel errors to neighbouring pixels, creating gradients using patterns. Makes images look smoother but less "clean".'
   },
-  'more-optimising': {
+  'more-optimizing': {
     title: 'More Optimising',
     body: 'These optimizations require the build to be away from the ground/wall behind it.'
   },
