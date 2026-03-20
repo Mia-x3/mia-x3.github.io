@@ -3420,9 +3420,39 @@ function copyToClipboard(withOutlines) {
 // URL SHARE
 // =====================
 
-// Hash format: #i:<imagedata>  or  #p:<palettedata>
-// Settings are packed as a query-string prefix before the base64 blob:
-// e.g.  #i:ps=32&cn=1&dt=0;<base64>
+// Formats: #i2:<deflate+base85 image>  #p2;<deflate+base85 palette>
+// Legacy:  #i:<base64 image>  #p;<base64 palette>
+
+function toUrlBase64(bytes) {
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+function fromUrlBase64(s) {
+  const b64 = s.replace(/-/g,'+').replace(/_/g,'/');
+  const pad = (4 - b64.length % 4) % 4;
+  const padded = b64 + '='.repeat(pad);
+  const bin = atob(padded);
+  const out = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+  return out;
+}
+async function compress(bytes) {
+  const cs = new CompressionStream('deflate-raw');
+  const w = cs.writable.getWriter(); w.write(bytes); w.close();
+  const chunks = []; const r = cs.readable.getReader();
+  while(true) { const {done, value} = await r.read(); if(done) break; chunks.push(value); }
+  const out = new Uint8Array(chunks.reduce((n,c)=>n+c.length,0)); let off=0;
+  chunks.forEach(c=>{out.set(c,off);off+=c.length;}); return out;
+}
+async function decompress(bytes) {
+  const ds = new DecompressionStream('deflate-raw');
+  const w = ds.writable.getWriter(); w.write(bytes); w.close();
+  const chunks = []; const r = ds.readable.getReader();
+  while(true) { const {done, value} = await r.read(); if(done) break; chunks.push(value); }
+  const out = new Uint8Array(chunks.reduce((n,c)=>n+c.length,0)); let off=0;
+  chunks.forEach(c=>{out.set(c,off);off+=c.length;}); return out;
+}
 
 function getSettings() {
   return {
@@ -3431,198 +3461,179 @@ function getSettings() {
     dt: document.getElementById('ditherCheck').checked ? 1 : 0,
   };
 }
-
 function applySettings(s) {
-  if(s.ps) {
-    document.getElementById('pixelInput').value = s.ps;
-    document.getElementById('pixelSlider').value = s.ps;
-  }
+  if(s.ps) { document.getElementById('pixelInput').value = s.ps; document.getElementById('pixelSlider').value = s.ps; }
   if(s.cn !== undefined) document.getElementById('connectPixels').checked = !!s.cn;
   if(s.dt !== undefined) document.getElementById('ditherCheck').checked = !!s.dt;
 }
 
-function encodeState() {
+function buildImageBytes() {
   if(!pixelColorData.length) return null;
-  const rows = pixelColorData.length;
-  const cols = pixelColorData[0].length;
-
-  // Magenta (255,0,255) is our transparent sentinel — not a valid Yeeps color
+  const rows = pixelColorData.length, cols = pixelColorData[0].length;
   const TRANSPARENT = {hex: '#ff00ff', name: 'transparent'};
-
-  const palSet = [];
-  const palIndex = {};
-  for(let y=0; y<rows; y++) for(let x=0; x<cols; x++) {
+  const palSet = [], palIndex = {};
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) {
     const cell = pixelColorData[y][x] || TRANSPARENT;
-    const h = cell.hex;
-    if(palIndex[h] === undefined) { palIndex[h] = palSet.length; palSet.push(cell); }
+    if(palIndex[cell.hex] === undefined) { palIndex[cell.hex] = palSet.length; palSet.push(cell); }
   }
-
   const rle = [];
-  let run = 1, last = palIndex[(pixelColorData[0][0] || TRANSPARENT).hex];
-  for(let i=1; i<rows*cols; i++) {
-    const y = Math.floor(i/cols), x = i%cols;
-    const idx = palIndex[(pixelColorData[y][x] || TRANSPARENT).hex];
-    if(idx === last && run < 255) { run++; }
-    else { rle.push(run, last); run=1; last=idx; }
+  let run = 1, last = palIndex[(pixelColorData[0][0]||TRANSPARENT).hex];
+  for(let i=1;i<rows*cols;i++) {
+    const y=Math.floor(i/cols), x=i%cols;
+    const idx = palIndex[(pixelColorData[y][x]||TRANSPARENT).hex];
+    if(idx===last && run<255) { run++; } else { rle.push(run,last); run=1; last=idx; }
   }
-  rle.push(run, last);
-
-  const bytes = new Uint8Array(4 + 2 + palSet.length*3 + 2 + rle.length);
-  let off = 0;
-  bytes[off++] = cols >> 8; bytes[off++] = cols & 0xff;
-  bytes[off++] = rows >> 8; bytes[off++] = rows & 0xff;
-  bytes[off++] = palSet.length >> 8; bytes[off++] = palSet.length & 0xff;
+  rle.push(run,last);
+  const bytes = new Uint8Array(6 + palSet.length*3 + rle.length);
+  let off=0;
+  bytes[off++]=cols>>8; bytes[off++]=cols&0xff;
+  bytes[off++]=rows>>8; bytes[off++]=rows&0xff;
+  bytes[off++]=palSet.length>>8; bytes[off++]=palSet.length&0xff;
   for(const c of palSet) {
     const r=parseInt(c.hex.slice(1,3),16)||0, g=parseInt(c.hex.slice(3,5),16)||0, b=parseInt(c.hex.slice(5,7),16)||0;
     bytes[off++]=r; bytes[off++]=g; bytes[off++]=b;
   }
-  for(const v of rle) bytes[off++] = v;
-
-  let bin = '';
-  bytes.forEach(b => bin += String.fromCharCode(b));
-  const s = getSettings();
-  return `ps=${s.ps}&cn=${s.cn}&dt=${s.dt};` + btoa(bin);
+  for(const v of rle) bytes[off++]=v;
+  return bytes;
 }
 
+function parseImageBytes(bytes) {
+  let off=0;
+  const cols=(bytes[off++]<<8)|bytes[off++], rows=(bytes[off++]<<8)|bytes[off++];
+  const palLen=(bytes[off++]<<8)|bytes[off++];
+  const palette=[];
+  for(let i=0;i<palLen;i++) {
+    const r=bytes[off++],g=bytes[off++],b=bytes[off++];
+    if(r===255&&g===0&&b===255) { palette.push(null); continue; }
+    const hex='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+    const known=[...DEFAULT_COLORS,...customColors].find(c=>c.hex===hex);
+    palette.push(known||{hex,name:hex});
+  }
+  const pixels=[];
+  while(off<bytes.length) { const count=bytes[off++],idx=bytes[off++]; for(let i=0;i<count;i++) pixels.push(palette[idx]); }
+  if(pixels.length!==cols*rows) return null;
+  return {cols,rows,pixels};
+}
+
+// Legacy stubs
+function encodeState() { return null; }
 function decodeState(raw) {
   try {
-    let settingsStr = '', b64 = raw;
-    if(raw.includes(';')) { [settingsStr, b64] = raw.split(';'); }
-
-    const settings = {};
-    settingsStr.split('&').forEach(pair => {
-      const [k,v] = pair.split('=');
-      if(k) settings[k] = isNaN(v) ? v : +v;
-    });
-
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-    let off = 0;
-    const cols = (bytes[off++]<<8)|bytes[off++];
-    const rows = (bytes[off++]<<8)|bytes[off++];
-    const palLen = (bytes[off++]<<8)|bytes[off++];
-    const palette = [];
-    for(let i=0;i<palLen;i++) {
-      const r=bytes[off++],g=bytes[off++],b=bytes[off++];
-      // Magenta (255,0,255) is our transparent sentinel
-      if(r===255 && g===0 && b===255) { palette.push(null); continue; }
-      const hex='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-      const known = [...DEFAULT_COLORS,...customColors].find(c=>c.hex===hex);
-      palette.push(known || {hex, name:hex});
-    }
-    const pixels = [];
-    while(off < bytes.length) {
-      const count = bytes[off++], idx = bytes[off++];
-      for(let i=0;i<count;i++) pixels.push(palette[idx]);
-    }
-    if(pixels.length !== cols*rows) return null;
-    return {cols, rows, pixels, settings};
+    let settingsStr='', b64=raw;
+    if(raw.includes(';')) { [settingsStr,b64]=raw.split(';'); }
+    const settings={};
+    settingsStr.split('&').forEach(pair=>{ const [k,v]=pair.split('='); if(k) settings[k]=isNaN(v)?v:+v; });
+    const bin=atob(b64), bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const parsed=parseImageBytes(bytes);
+    if(!parsed) return null;
+    return {...parsed,settings};
   } catch(e) { return null; }
 }
-
-function encodePalette() {
-  // Encode custom colors + disabled default colors
-  const data = {
-    custom: customColors,
-    disabled: [...disabledColors],
-  };
-  return 'p;' + btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-}
-
+function encodePalette() { return null; }
 function decodePalette(raw) {
-  try {
-    const b64 = raw.startsWith('p;') ? raw.slice(2) : raw;
-    return JSON.parse(decodeURIComponent(escape(atob(b64))));
-  } catch(e) { return null; }
+  try { const b64=raw.startsWith('p;')?raw.slice(2):raw; return JSON.parse(decodeURIComponent(escape(atob(b64)))); }
+  catch(e) { return null; }
 }
 
-function shareURL() {
-  const enc = encodeState();
-  if(!enc) { showToast('⚠️ No image to share yet'); return; }
-  const url = location.href.split('#')[0] + '#i:' + enc;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('🔗 Share link copied!');
-  }).catch(() => prompt('Copy this share URL:', url));
+async function shareURL() {
+  const bytes = buildImageBytes();
+  if(!bytes) { showToast('\u26a0\ufe0f No image to share yet'); return; }
+  const compressed = await compress(bytes);
+  const s = getSettings();
+  const enc = `ps=${s.ps}&cn=${s.cn}&dt=${s.dt};` + toUrlBase64(compressed);
+  const url = location.href.split('#')[0] + '#i2:' + enc;
+  navigator.clipboard.writeText(url).then(() => showToast('\ud83d\udd17 Share link copied!')).catch(() => prompt('Copy this share URL:', url));
 }
 
-function sharePalette() {
-  const enc = encodePalette();
-  const url = location.href.split('#')[0] + '#' + enc;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('🎨 Palette link copied!');
-  }).catch(() => prompt('Copy this palette URL:', url));
+async function sharePalette() {
+  const data = {custom: customColors, disabled: [...disabledColors]};
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  const compressed = await compress(bytes);
+  const url = location.href.split('#')[0] + '#p2;' + toUrlBase64(compressed);
+  navigator.clipboard.writeText(url).then(() => showToast('\ud83c\udfa8 Palette link copied!')).catch(() => prompt('Copy this palette URL:', url));
 }
 
-function loadFromHash() {
+function loadParsedImage({cols, rows, pixels}) {
+  const SCALE = 12;
+  pixelColorData = []; pixelCounts = {};
+  for(let y=0;y<rows;y++) {
+    pixelColorData[y]=[];
+    for(let x=0;x<cols;x++) {
+      const c=pixels[y*cols+x]; pixelColorData[y][x]=c;
+      if(c) pixelCounts[c.hex]=(pixelCounts[c.hex]||0)+1;
+    }
+  }
+  const canvas=document.getElementById('outputCanvas'), overlay=document.getElementById('overlayCanvas'), wrapper=document.getElementById('canvasWrapper');
+  canvas.width=cols*SCALE; canvas.height=rows*SCALE; overlay.width=cols*SCALE; overlay.height=rows*SCALE;
+  const ctx=canvas.getContext('2d');
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) {
+    if(!pixelColorData[y][x]) continue;
+    ctx.fillStyle=pixelColorData[y][x].hex; ctx.fillRect(x*SCALE,y*SCALE,SCALE,SCALE);
+  }
+  computeBlockMap(cols,rows);
+  wrapper.classList.add('visible');
+  document.getElementById('zoomBar').classList.add('visible');
+  document.getElementById('placeholder').style.display='none';
+  document.getElementById('downloadBtns').style.display='flex';
+  document.getElementById('toolsPanel').style.display='block';
+  document.getElementById('colorSummaryPanel').style.display='block';
+  setupTooltip(wrapper,cols,rows,SCALE); setupCanvasInteraction(wrapper,cols,rows,SCALE);
+  renderToolColorGrid(); updateStats(cols,rows); setTimeout(fitZoom,0);
+  showToast('\ud83d\udd17 Loaded shared image!');
+  history.replaceState(null,'',location.pathname);
+}
+
+async function loadFromHash() {
   const hash = location.hash.slice(1);
   if(!hash) return;
 
-  // Palette share
+  // New compressed palette
+  if(hash.startsWith('p2;')) {
+    try {
+      const bytes = await decompress(fromUrlBase64(hash.slice(3)));
+      const data = JSON.parse(new TextDecoder().decode(bytes));
+      if(data.custom?.length) { data.custom.forEach(c=>{ if(!customColors.find(x=>x.hex===c.hex)) customColors.push(c); }); localStorage.setItem('px_custom_colors',JSON.stringify(customColors)); }
+      if(data.disabled?.length) data.disabled.forEach(h=>disabledColors.add(h));
+      renderPalette(); renderToolColorGrid();
+      showToast(`\ud83c\udfa8 Palette loaded! ${data.custom?.length||0} custom color${data.custom?.length!==1?'s':''} added`);
+    } catch(e) { showToast('\u26a0\ufe0f Failed to load palette'); }
+    history.replaceState(null,'',location.pathname); return;
+  }
+
+  // Legacy palette
   if(hash.startsWith('p;')) {
-    const data = decodePalette(hash);
-    if(!data) return;
-    if(data.custom?.length) {
-      data.custom.forEach(c => {
-        if(!customColors.find(x=>x.hex===c.hex)) customColors.push(c);
-      });
-      localStorage.setItem('px_custom_colors', JSON.stringify(customColors));
-    }
-    if(data.disabled?.length) {
-      data.disabled.forEach(h => disabledColors.add(h));
-    }
-    renderPalette();
-    renderToolColorGrid();
-    showToast(`🎨 Palette loaded! ${data.custom?.length || 0} custom color${data.custom?.length !== 1 ? 's' : ''} added`);
-    history.replaceState(null, '', location.pathname);
+    const data = decodePalette(hash); if(!data) return;
+    if(data.custom?.length) { data.custom.forEach(c=>{ if(!customColors.find(x=>x.hex===c.hex)) customColors.push(c); }); localStorage.setItem('px_custom_colors',JSON.stringify(customColors)); }
+    if(data.disabled?.length) data.disabled.forEach(h=>disabledColors.add(h));
+    renderPalette(); renderToolColorGrid();
+    showToast(`\ud83c\udfa8 Palette loaded! ${data.custom?.length||0} custom color${data.custom?.length!==1?'s':''} added`);
+    history.replaceState(null,'',location.pathname); return;
+  }
+
+  // New compressed image
+  if(hash.startsWith('i2:')) {
+    try {
+      const rest = hash.slice(3);
+      const firstSemi = rest.indexOf(';');
+      const settingsStr = rest.slice(0, firstSemi);
+      const b85 = rest.slice(firstSemi + 1);
+      const settings={};
+      settingsStr.split('&').forEach(pair=>{ const [k,v]=pair.split('='); if(k) settings[k]=isNaN(v)?v:+v; });
+      const bytes = await decompress(fromUrlBase64(b85));
+      const parsed = parseImageBytes(bytes);
+      if(!parsed) { showToast('\u26a0\ufe0f Failed to load image'); return; }
+      if(Object.keys(settings).length) applySettings(settings);
+      loadParsedImage(parsed);
+    } catch(e) { showToast('\u26a0\ufe0f Failed to load image'); }
     return;
   }
 
-  // Image share
+  // Legacy image
   const raw = hash.startsWith('i:') ? hash.slice(2) : hash;
-  const state = decodeState(raw);
-  if(!state) return;
-  const {cols, rows, pixels, settings} = state;
-  const SCALE = 12;
-
-  if(settings && Object.keys(settings).length) applySettings(settings);
-
-  pixelColorData = [];
-  pixelCounts = {};
-  for(let y=0;y<rows;y++) {
-    pixelColorData[y] = [];
-    for(let x=0;x<cols;x++) {
-      const c = pixels[y*cols+x];
-      pixelColorData[y][x] = c;
-      if(c) pixelCounts[c.hex] = (pixelCounts[c.hex]||0)+1;
-    }
-  }
-
-  const canvas = document.getElementById('outputCanvas');
-  const overlay = document.getElementById('overlayCanvas');
-  const wrapper = document.getElementById('canvasWrapper');
-  canvas.width = cols*SCALE; canvas.height = rows*SCALE;
-  overlay.width = cols*SCALE; overlay.height = rows*SCALE;
-  const ctx = canvas.getContext('2d');
-  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++) {
-    if(!pixelColorData[y][x]) continue;
-    ctx.fillStyle = pixelColorData[y][x].hex;
-    ctx.fillRect(x*SCALE, y*SCALE, SCALE, SCALE);
-  }
-  computeBlockMap(cols, rows);
-  wrapper.classList.add('visible');
-  document.getElementById('zoomBar').classList.add('visible');
-  document.getElementById('placeholder').style.display = 'none';
-  document.getElementById('downloadBtns').style.display = 'flex';
-  document.getElementById('toolsPanel').style.display = 'block';
-  document.getElementById('colorSummaryPanel').style.display = 'block';
-  setupTooltip(wrapper, cols, rows, SCALE);
-  setupCanvasInteraction(wrapper, cols, rows, SCALE);
-  renderToolColorGrid();
-  updateStats(cols, rows);
-  setTimeout(fitZoom, 0);
-  showToast('🔗 Loaded shared image!');
-  history.replaceState(null, '', location.pathname);
+  const state = decodeState(raw); if(!state) return;
+  if(state.settings && Object.keys(state.settings).length) applySettings(state.settings);
+  loadParsedImage(state);
 }
 
 document.getElementById('shareBtn').onclick = shareURL;
