@@ -3474,8 +3474,43 @@ function copyToClipboard(withOutlines) {
 }
 
 // =====================
-// URL SHARE
+// SUPABASE SHORT LINKS
 // =====================
+const SB_URL  = 'https://umrzjlgvmmaumhhdkocc.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcnpqbGd2bW1hdW1oaGRrb2NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjIyODgsImV4cCI6MjA4OTU5ODI4OH0._4z-h1GWWPIQJglxD_frotH9OHMUM7Px_1tGxrlwq4Q';
+const SB_HEADERS = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
+
+function genShortId() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for(let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
+async function sbSave(type, data) {
+  let id = genShortId();
+  // Retry on collision (extremely unlikely)
+  for(let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(`${SB_URL}/rest/v1/shared_images`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ id, type, data })
+    });
+    if(res.ok) return id;
+    if(res.status === 409) { id = genShortId(); continue; }
+    throw new Error('Supabase save failed: ' + res.status);
+  }
+}
+
+async function sbLoad(id) {
+  const res = await fetch(`${SB_URL}/rest/v1/shared_images?id=eq.${id}&select=type,data`, {
+    headers: SB_HEADERS
+  });
+  if(!res.ok) throw new Error('Supabase load failed: ' + res.status);
+  const rows = await res.json();
+  if(!rows.length) throw new Error('Not found');
+  return rows[0];
+}
 
 // Formats: #i2:<deflate+base85 image>  #p2;<deflate+base85 palette>
 // Legacy:  #i:<base64 image>  #p;<base64 palette>
@@ -3596,20 +3631,46 @@ function decodePalette(raw) {
 
 async function shareURL() {
   const bytes = buildImageBytes();
-  if(!bytes) { showToast('\u26a0\ufe0f No image to share yet'); return; }
-  const compressed = await compress(bytes);
-  const s = getSettings();
-  const enc = `ps=${s.ps}&cn=${s.cn}&dt=${s.dt};` + toUrlBase64(compressed);
-  const url = location.href.split('#')[0] + '#i2:' + enc;
-  navigator.clipboard.writeText(url).then(() => showToast('\ud83d\udd17 Share link copied!')).catch(() => prompt('Copy this share URL:', url));
+  if(!bytes) { showToast('⚠️ No image to share yet'); return; }
+  showToast('⏳ Creating share link...');
+  try {
+    const compressed = await compress(bytes);
+    const s = getSettings();
+    const allSettings = {
+      ...s,
+      vending:    document.getElementById('useVending').checked ? 1 : 0,
+      buildplate: document.getElementById('useBuildplate').checked ? 1 : 0,
+      moreopt:    document.getElementById('useMoreOptimising').checked ? 1 : 0,
+      sideways:   document.getElementById('useSidewaysVending').checked ? 1 : 0,
+      horror:     document.getElementById('useHorrorTable').checked ? 1 : 0,
+      wood1x16:   document.getElementById('use1x16').checked ? 1 : 0,
+      passageway: document.getElementById('usePassageway').checked ? 1 : 0,
+      grass:      document.getElementById('useGrass').checked ? 1 : 0,
+    };
+    const settingsStr = Object.entries(allSettings).map(([k,v])=>`${k}=${v}`).join('&');
+    const data = settingsStr + ';' + toUrlBase64(compressed);
+    const id = await sbSave('img', data);
+    const url = location.href.split('#')[0] + '#s:' + id;
+    navigator.clipboard.writeText(url).then(() => showToast('🔗 Share link copied!')).catch(() => prompt('Copy this share URL:', url));
+  } catch(e) {
+    showToast('⚠️ Failed to create share link');
+    console.error(e);
+  }
 }
 
 async function sharePalette() {
-  const data = {custom: customColors, disabled: [...disabledColors]};
-  const bytes = new TextEncoder().encode(JSON.stringify(data));
-  const compressed = await compress(bytes);
-  const url = location.href.split('#')[0] + '#p2;' + toUrlBase64(compressed);
-  navigator.clipboard.writeText(url).then(() => showToast('\ud83c\udfa8 Palette link copied!')).catch(() => prompt('Copy this palette URL:', url));
+  showToast('⏳ Creating palette link...');
+  try {
+    const data = {custom: customColors, disabled: [...disabledColors]};
+    const bytes = new TextEncoder().encode(JSON.stringify(data));
+    const compressed = await compress(bytes);
+    const id = await sbSave('pal', toUrlBase64(compressed));
+    const url = location.href.split('#')[0] + '#sp:' + id;
+    navigator.clipboard.writeText(url).then(() => showToast('🎨 Palette link copied!')).catch(() => prompt('Copy this palette URL:', url));
+  } catch(e) {
+    showToast('⚠️ Failed to create palette link');
+    console.error(e);
+  }
 }
 
 function loadParsedImage({cols, rows, pixels}) {
@@ -3642,11 +3703,56 @@ function loadParsedImage({cols, rows, pixels}) {
   history.replaceState(null,'',location.pathname);
 }
 
+function applyAllSettings(s) {
+  applySettings(s);
+  if(s.vending    !== undefined) document.getElementById('useVending').checked      = !!s.vending;
+  if(s.buildplate !== undefined) document.getElementById('useBuildplate').checked   = !!s.buildplate;
+  if(s.moreopt    !== undefined) document.getElementById('useMoreOptimising').checked = !!s.moreopt;
+  if(s.sideways   !== undefined) document.getElementById('useSidewaysVending').checked = !!s.sideways;
+  if(s.horror     !== undefined) document.getElementById('useHorrorTable').checked  = !!s.horror;
+  if(s.wood1x16   !== undefined) document.getElementById('use1x16').checked         = !!s.wood1x16;
+  if(s.passageway !== undefined) document.getElementById('usePassageway').checked   = !!s.passageway;
+  if(s.grass      !== undefined) document.getElementById('useGrass').checked        = !!s.grass;
+  updateBlockTypeOptionsVisibility();
+}
+
 async function loadFromHash() {
   const hash = location.hash.slice(1);
   if(!hash) return;
 
-  // New compressed palette
+  // Supabase short image link
+  if(hash.startsWith('s:')) {
+    try {
+      showToast('⏳ Loading shared image...');
+      const row = await sbLoad(hash.slice(2));
+      const firstSemi = row.data.indexOf(';');
+      const settingsStr = row.data.slice(0, firstSemi);
+      const b64 = row.data.slice(firstSemi + 1);
+      const settings = {};
+      settingsStr.split('&').forEach(pair => { const [k,v] = pair.split('='); if(k) settings[k] = isNaN(v) ? v : +v; });
+      const bytes = await decompress(fromUrlBase64(b64));
+      const parsed = parseImageBytes(bytes);
+      if(!parsed) { showToast('⚠️ Failed to load image'); return; }
+      applyAllSettings(settings);
+      loadParsedImage(parsed);
+    } catch(e) { showToast('⚠️ Failed to load image'); console.error(e); }
+    history.replaceState(null, '', location.pathname); return;
+  }
+
+  // Supabase short palette link
+  if(hash.startsWith('sp:')) {
+    try {
+      showToast('⏳ Loading palette...');
+      const row = await sbLoad(hash.slice(3));
+      const bytes = await decompress(fromUrlBase64(row.data));
+      const data = JSON.parse(new TextDecoder().decode(bytes));
+      if(data.custom?.length) { data.custom.forEach(c => { if(!customColors.find(x => x.hex === c.hex)) customColors.push(c); }); localStorage.setItem('px_custom_colors', JSON.stringify(customColors)); }
+      if(data.disabled?.length) data.disabled.forEach(h => disabledColors.add(h));
+      renderPalette(); renderToolColorGrid();
+      showToast(`🎨 Palette loaded! ${data.custom?.length || 0} custom color${data.custom?.length !== 1 ? 's' : ''} added`);
+    } catch(e) { showToast('⚠️ Failed to load palette'); }
+    history.replaceState(null, '', location.pathname); return;
+  }
   if(hash.startsWith('p2;')) {
     try {
       const bytes = await decompress(fromUrlBase64(hash.slice(3)));
