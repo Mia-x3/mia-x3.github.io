@@ -3504,8 +3504,8 @@ function parseImageBytes(bytes) {
     const r=bytes[off++],g=bytes[off++],b=bytes[off++];
     if(r===255&&g===0&&b===255) { palette.push(null); continue; }
     const hex='#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
-    const known=[...DEFAULT_COLORS,...customColors].find(c=>c.hex.toLowerCase()===hex.toLowerCase());
-    palette.push(known||{hex,name:hex});
+    const known=[...DEFAULT_COLORS,...customColors].find(c=>c.hex.toLowerCase()===hex);
+    palette.push(known ? {...known, hex: hex} : {hex, name:hex});
   }
   const pixels=[];
   while(off<bytes.length) { const count=bytes[off++],idx=bytes[off++]; for(let i=0;i<count;i++) pixels.push(palette[idx]); }
