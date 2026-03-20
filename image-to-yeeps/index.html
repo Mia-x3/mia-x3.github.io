@@ -2601,6 +2601,33 @@ function computeBlockMap(cols, rows) {
   };
 }
 
+function drawBlockOutlinesOnto(ctx, w, h, cols, rows, SCALE) {
+  const connectEnabled = document.getElementById('connectPixels').checked;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if(connectEnabled) {
+    for(const edge of edges) {
+      const [type, xs, ys] = edge.split(',');
+      const x = +xs, y = +ys;
+      if(type === 'h') { ctx.moveTo(x*SCALE, y*SCALE); ctx.lineTo((x+1)*SCALE, y*SCALE); }
+      else             { ctx.moveTo(x*SCALE, y*SCALE); ctx.lineTo(x*SCALE, (y+1)*SCALE); }
+    }
+  } else {
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+    ctx.lineWidth = 0.5;
+    for(let y=0; y<rows; y++) for(let x=0; x<cols; x++) {
+      if(!pixelColorData[y]?.[x]) continue;
+      if(x+1<cols && pixelColorData[y]?.[x+1]) { ctx.moveTo((x+1)*SCALE,y*SCALE); ctx.lineTo((x+1)*SCALE,(y+1)*SCALE); }
+      if(y+1<rows && pixelColorData[y+1]?.[x]) { ctx.moveTo(x*SCALE,(y+1)*SCALE); ctx.lineTo((x+1)*SCALE,(y+1)*SCALE); }
+    }
+  }
+  ctx.stroke();
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0, 0, cols*SCALE, rows*SCALE);
+}
+
 function drawBlockOutlines(cols, rows, SCALE) {
   const connectEnabled = document.getElementById('connectPixels').checked;
   const overlay = document.getElementById('overlayCanvas');
@@ -3204,12 +3231,11 @@ function copyToClipboard(withOutlines) {
   const canvas = document.getElementById('outputCanvas');
   let sourceCanvas = canvas;
   if(withOutlines) {
-    const overlay = document.getElementById('overlayCanvas');
     const temp = document.createElement('canvas');
     temp.width = canvas.width; temp.height = canvas.height;
     const ctx = temp.getContext('2d');
     ctx.drawImage(canvas, 0, 0);
-    ctx.drawImage(overlay, 0, 0);
+    drawBlockOutlinesOnto(ctx, canvas.width, canvas.height, canvasCols, canvasRows, canvasSCALE);
     sourceCanvas = temp;
   }
   sourceCanvas.toBlob(blob => {
@@ -3464,16 +3490,14 @@ document.addEventListener('keydown', e => {
 
 function downloadImage(withOutlines) {
   const canvas = document.getElementById('outputCanvas');
-  const overlay = document.getElementById('overlayCanvas');
-
   if(withOutlines) {
-    // Composite pixel art + overlay onto a temp canvas at full resolution
     const temp = document.createElement('canvas');
     temp.width = canvas.width;
     temp.height = canvas.height;
     const ctx = temp.getContext('2d');
     ctx.drawImage(canvas, 0, 0);
-    ctx.drawImage(overlay, 0, 0);
+    // Draw outlines at full resolution onto temp canvas
+    drawBlockOutlinesOnto(ctx, canvas.width, canvas.height, canvasCols, canvasRows, canvasSCALE);
     const a = document.createElement('a');
     a.download = 'pixel-art-outlines.png';
     a.href = temp.toDataURL('image/png');
