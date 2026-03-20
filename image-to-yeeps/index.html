@@ -1367,7 +1367,7 @@
         <label class="check-row">
           <input type="checkbox" id="useHorrorTable">
           <span class="custom-check"></span>
-          <span class="check-label">Horror table <small style="color:var(--text2)">(4x6, Maroon only)</small></span>
+          <span class="check-label">Horror table <small style="color:var(--text2)">(3x6, Maroon only)</small></span>
         </label>
         <label class="check-row">
           <input type="checkbox" id="use1x16">
@@ -1480,11 +1480,19 @@ const FONTS = [
   {name: 'Space Mono', family: "'Space Mono', monospace"},
   {name: 'Syne', family: "'Syne', sans-serif"},
 ];
-// Load fonts
+const FONT_URLS = {
+  'Lilita One':  null, // already loaded in <head>
+  'Fredoka One': 'https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap',
+  'Nunito':      'https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap',
+  'Space Mono':  'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap',
+  'Syne':        'https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap',
+};
 FONTS.forEach(f => {
+  const url = FONT_URLS[f.name];
+  if(!url) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${f.name.replace(/ /g,'+')}:wght@400;700&display=swap`;
+  link.href = url;
   document.head.appendChild(link);
 });
 
@@ -2626,7 +2634,7 @@ const BLOCK_SHAPES = [
   {key:"8x8",   label:"8x8 Wood block",                 type:"wood",        w:8,  h:8 },
   {key:"4x8",   label:"4x8 Wood block",                 type:"wood",        w:4,  h:8 },
   {key:"2x16",  label:"2x16 Wood block",                type:"wood",        w:2,  h:16},
-  {key:"4x6",   label:"4x6 Horror table (Maroon only)", type:"horror",      w:4,  h:6 },
+  {key:"3x6",   label:"3x6 Horror table (Maroon only)", type:"horror",      w:3,  h:6 },
   {key:"4x4",   label:"4x4 Wood block",                 type:"wood",        w:4,  h:4 },
   {key:"2x8",   label:"2x8 Wood block",                 type:"wood",        w:2,  h:8 },
   {key:"1x16",  label:"1x16 Wood block",                type:"wood1x16",    w:1,  h:16},
