@@ -201,19 +201,6 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   }
 
-  .panel-title {
-    font-size: 0.75rem;
-    color: var(--text2);
-    margin-bottom: 10px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
   /* UPLOAD */
   .upload-area {
     border: 2px dashed rgba(255,255,255,0.12);
@@ -788,10 +775,16 @@
   .import-palette-btn:hover { border-color: rgba(223,158,84,0.5); background: rgba(223,158,84,0.1); transform: scale(1.1); }
 
   /* COLOR SUMMARY */
-  #colorSummaryList { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; }
-  .summary-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text2); }
-  .summary-swatch { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
-  .summary-bar-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; }
+  #colorSummaryList { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; }
+  #blockSummaryList { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; }
+  .summary-row, .block-summary-row {
+    display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text2);
+    flex-wrap: wrap;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .summary-row:last-child, .block-summary-row:last-child { border-bottom: none; }
+  .summary-bar-wrap { flex: 1; min-width: 40px; height: 4px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; }
   .summary-bar { height: 100%; border-radius: 999px; transition: width 0.5s var(--liquid); }
   .summary-count { min-width: 28px; text-align: right; color: var(--text); font-size: 0.75rem; }
 
@@ -1142,7 +1135,70 @@
     100% { transform: scale(1.08); }
   }
 
-  .panel { transition: border-color 0.4s var(--liquid), box-shadow 0.4s var(--liquid); }
+  /* COLLAPSIBLE PANELS */
+  .panel-title {
+    font-size: 0.75rem;
+    color: var(--text2);
+    margin-bottom: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel-title .panel-chevron {
+    margin-left: auto;
+    width: 12px; height: 12px;
+    opacity: 0.5;
+    transition: transform 0.3s var(--ease);
+    flex-shrink: 0;
+  }
+  .panel.collapsed .panel-title { margin-bottom: 0; border-bottom-color: transparent; }
+  .panel.collapsed .panel-title .panel-chevron { transform: rotate(-90deg); }
+  .panel-body {
+    overflow: hidden;
+    transition: max-height 0.35s var(--liquid), opacity 0.3s var(--ease);
+    max-height: 1000px;
+    opacity: 1;
+  }
+  .panel.collapsed .panel-body { max-height: 0; opacity: 0; pointer-events: none; }
+
+  /* SUMMARY TABS */
+  .summary-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .summary-tab {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--font, 'Lilita One', cursive);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s var(--ease);
+    letter-spacing: 0.5px;
+  }
+  .summary-tab.active {
+    background: rgba(223,84,84,0.15);
+    border-color: rgba(223,84,84,0.4);
+    color: var(--accent);
+  }
+  .summary-tab-panel { display: none; }
+  .summary-tab-panel.active { display: block; }
+
+  /* BLOCK SUMMARY */
+  #blockSummaryList { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+  .block-summary-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text2); }
+  .block-summary-label { flex: 1; word-break: break-word; }
+  .block-summary-count { min-width: 28px; text-align: right; color: var(--text); font-size: 0.75rem; }
 
   /* MODAL ENTER */
   .modal {
@@ -1206,24 +1262,28 @@
 
     <!-- UPLOAD -->
     <div class="panel">
-      <div class="panel-title"><i data-lucide="upload"></i> Upload Image</div>
-      <div class="upload-area" id="uploadArea">
-        <input type="file" id="fileInput" accept="image/*">
-        <div class="upload-icon"><i data-lucide="image"></i></div>
-        <div class="upload-text">Drop image or click to browse<br><small>Any format supported</small></div>
+      <div class="panel-title" onclick="togglePanel(this)"><i data-lucide="upload"></i> Upload Image<svg class="panel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="panel-body">
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" accept="image/*">
+          <div class="upload-icon"><i data-lucide="image"></i></div>
+          <div class="upload-text">Drop image or click to browse<br><small>Any format supported</small></div>
+        </div>
       </div>
     </div>
 
     <!-- PIXEL SIZE -->
     <div class="panel">
-      <div class="panel-title"><i data-lucide="grid-2x2"></i> Pixel Size</div>
-      <div class="control-row">
-        <div class="control-label">
-          <span>Pixels per side <button class="info-btn" data-info="pixels-per-side">?</button></span>
-        </div>
-        <div class="slider-row">
-          <input type="range" id="pixelSlider" min="4" max="256" value="32">
-          <input type="number" class="num-input" id="pixelInput" min="4" max="256" value="32">
+      <div class="panel-title" onclick="togglePanel(this)"><i data-lucide="grid-2x2"></i> Pixel Size<svg class="panel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="panel-body">
+        <div class="control-row">
+          <div class="control-label">
+            <span>Pixels per side <button class="info-btn" data-info="pixels-per-side">?</button></span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="pixelSlider" min="4" max="256" value="32">
+            <input type="number" class="num-input" id="pixelInput" min="4" max="256" value="32">
+          </div>
         </div>
       </div>
     </div>
@@ -1233,49 +1293,64 @@
 
     <!-- TOOLS -->
     <div class="panel" id="toolsPanel" style="display:none">
-      <div class="panel-title"><i data-lucide="paintbrush-2"></i> Tools</div>
-      <div class="tool-btns">
-        <button class="tool-btn active" id="toolPointer" onclick="setTool('pointer')" title="Pointer (hover info)"><i data-lucide="mouse-pointer-2"></i></button>
-        <button class="tool-btn" id="toolPaint" onclick="setTool('paint')" title="Paint (P)"><i data-lucide="pencil"></i></button>
-        <button class="tool-btn" id="toolBucket" onclick="setTool('bucket')" title="Bucket fill (B)"><i data-lucide="paint-bucket"></i></button>
-        <button class="tool-btn" id="toolUndo" onclick="undo()" title="Undo (Ctrl+Z)"><i data-lucide="undo-2"></i></button>
-        <button class="tool-btn" id="toolRedo" onclick="redo()" title="Redo (Ctrl+Y)"><i data-lucide="redo-2"></i></button>
-      </div>
-      <div class="tool-color-row" id="toolColorRow">
-        <div class="recent-row" id="recentRow" style="display:none">
-          <span class="recent-label">Recently used:</span>
-          <div class="recent-swatches" id="recentSwatches"></div>
+      <div class="panel-title" onclick="togglePanel(this)"><i data-lucide="paintbrush-2"></i> Tools<svg class="panel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="panel-body">
+        <div class="tool-btns">
+          <button class="tool-btn active" id="toolPointer" onclick="setTool('pointer')" title="Pointer (hover info)"><i data-lucide="mouse-pointer-2"></i></button>
+          <button class="tool-btn" id="toolPaint" onclick="setTool('paint')" title="Paint (P)"><i data-lucide="pencil"></i></button>
+          <button class="tool-btn" id="toolBucket" onclick="setTool('bucket')" title="Bucket fill (B)"><i data-lucide="paint-bucket"></i></button>
+          <button class="tool-btn" id="toolUndo" onclick="undo()" title="Undo (Ctrl+Z)"><i data-lucide="undo-2"></i></button>
+          <button class="tool-btn" id="toolRedo" onclick="redo()" title="Redo (Ctrl+Y)"><i data-lucide="redo-2"></i></button>
         </div>
-        <span style="font-size:0.8rem;color:var(--text2)">All colors:</span>
-        <div class="tool-color-grid" id="toolColorGrid"></div>
+        <div class="tool-color-row" id="toolColorRow">
+          <div class="recent-row" id="recentRow" style="display:none">
+            <span class="recent-label">Recently used:</span>
+            <div class="recent-swatches" id="recentSwatches"></div>
+          </div>
+          <span style="font-size:0.8rem;color:var(--text2)">All colors:</span>
+          <div class="tool-color-grid" id="toolColorGrid"></div>
+        </div>
       </div>
     </div>
 
     <!-- PALETTE -->
     <div class="panel">
-      <div class="panel-title"><i data-lucide="swatch-book"></i> Palette <button class="info-btn" data-info="palette">?</button></div>
-      <div class="palette-header" style="display:flex;justify-content:space-between;align-items:center;">
-        <small style="color:var(--text2); font-size:0.75rem;">Click to toggle (default colors persist)</small>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <button class="import-palette-btn" onclick="resetPalette()" title="Reset to default colors"><i data-lucide="trash-2"></i></button>
-          <label class="import-palette-btn" title="Import colors from image">
-            <i data-lucide="camera"></i>
-            <input type="file" id="importPaletteInput" accept="image/*" style="display:none">
-          </label>
+      <div class="panel-title" onclick="togglePanel(this)"><i data-lucide="swatch-book"></i> Palette <button class="info-btn" data-info="palette" onclick="event.stopPropagation()">?</button><svg class="panel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="panel-body">
+        <div class="palette-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <small style="color:var(--text2); font-size:0.75rem;">Click to toggle (default colors persist)</small>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="import-palette-btn" onclick="resetPalette()" title="Reset to default colors"><i data-lucide="trash-2"></i></button>
+            <label class="import-palette-btn" title="Import colors from image">
+              <i data-lucide="camera"></i>
+              <input type="file" id="importPaletteInput" accept="image/*" style="display:none">
+            </label>
+          </div>
         </div>
-      </div>
-      <div class="palette-grid" id="paletteGrid"></div>
-      <div class="add-color-row">
-        <input type="color" id="addColorPicker" value="#ff0000">
-        <input type="text" id="addColorName" placeholder="Color name...">
-        <button class="btn btn-sm" onclick="addCustomColor()">Add</button>
+        <div class="palette-grid" id="paletteGrid"></div>
+        <div class="add-color-row">
+          <input type="color" id="addColorPicker" value="#ff0000">
+          <input type="text" id="addColorName" placeholder="Color name...">
+          <button class="btn btn-sm" onclick="addCustomColor()">Add</button>
+        </div>
       </div>
     </div>
 
-    <!-- COLOR SUMMARY -->
+    <!-- SUMMARY -->
     <div class="panel" id="colorSummaryPanel" style="display:none">
-      <div class="panel-title"><i data-lucide="bar-chart-3"></i> Color Summary</div>
-      <div id="colorSummaryList"></div>
+      <div class="panel-title" onclick="togglePanel(this)"><i data-lucide="bar-chart-3"></i> Summary<svg class="panel-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="panel-body">
+        <div class="summary-tabs">
+          <button class="summary-tab active" onclick="switchSummaryTab('colors', this)">Colors</button>
+          <button class="summary-tab" onclick="switchSummaryTab('blocks', this)">Blocks</button>
+        </div>
+        <div class="summary-tab-panel active" id="summaryTabColors">
+          <div id="colorSummaryList"></div>
+        </div>
+        <div class="summary-tab-panel" id="summaryTabBlocks">
+          <div id="blockSummaryList"></div>
+        </div>
+      </div>
     </div>
 
     <!-- CONVERT -->
@@ -2232,16 +2307,30 @@ function updateStats(cols, rows) {
 // =====================
 // COLOR SUMMARY
 // =====================
+function togglePanel(titleEl) {
+  // Don't collapse if user clicked an info-btn inside the title
+  if(event.target.closest('.info-btn')) return;
+  titleEl.closest('.panel').classList.toggle('collapsed');
+}
+
+function switchSummaryTab(tab, btn) {
+  document.querySelectorAll('.summary-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.summary-tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tab === 'colors' ? 'summaryTabColors' : 'summaryTabBlocks').classList.add('active');
+}
+
 function updateColorSummary(cols, rows) {
   const panel = document.getElementById('colorSummaryPanel');
   const list = document.getElementById('colorSummaryList');
+  const blockList = document.getElementById('blockSummaryList');
   if(!list || !Object.keys(pixelCounts).length) return;
   panel.style.display = 'block';
 
   const connectEnabled = document.getElementById('connectPixels').checked;
   const allColors = [...DEFAULT_COLORS, ...customColors];
 
-  // Count blocks per color hex by scanning blockMap for unique block origins
+  // Count blocks per color hex
   const blockCountsByHex = {};
   if(connectEnabled && blockMap.length) {
     const seen = new Set();
@@ -2254,12 +2343,12 @@ function updateColorSummary(cols, rows) {
         seen.add(key);
         const cell = pixelColorData[b.y]?.[b.x];
         if(!cell) continue;
-        const hex = cell.hex;
-        blockCountsByHex[hex] = (blockCountsByHex[hex] || 0) + 1;
+        blockCountsByHex[cell.hex] = (blockCountsByHex[cell.hex] || 0) + 1;
       }
     }
   }
 
+  // COLORS TAB
   const entries = Object.entries(pixelCounts)
     .map(([hex, pixCount]) => {
       const color = allColors.find(c => c.hex.toLowerCase() === hex.toLowerCase()) || {name: hex, hex};
@@ -2274,13 +2363,34 @@ function updateColorSummary(cols, rows) {
     const row = document.createElement('div');
     row.className = 'summary-row';
     row.innerHTML = `
-      <div class="summary-swatch" style="background:${hex}"></div>
-      <span style="min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${name}">${name}</span>
-      <div class="summary-bar-wrap"><div class="summary-bar" style="width:${(displayCount/maxDisplay*100).toFixed(1)}%;background:${hex}"></div></div>
-      <span class="summary-count">${displayCount}</span>
+      <div class="summary-swatch" style="background:${hex};flex-shrink:0"></div>
+      <span class="block-summary-label" title="${name}">${name}</span>
+      <div class="summary-bar-wrap" style="flex:1"><div class="summary-bar" style="width:${(displayCount/maxDisplay*100).toFixed(1)}%;background:${hex}"></div></div>
+      <span class="block-summary-count">${displayCount}</span>
     `;
     list.appendChild(row);
   });
+
+  // BLOCKS TAB
+  if(blockList) {
+    blockList.innerHTML = '';
+    if(connectEnabled && Object.keys(blockCounts).length) {
+      const blockEntries = Object.entries(blockCounts).sort((a, b) => b[1] - a[1]);
+      const maxBC = Math.max(...blockEntries.map(e => e[1]), 1);
+      blockEntries.forEach(([label, count]) => {
+        const row = document.createElement('div');
+        row.className = 'block-summary-row';
+        row.innerHTML = `
+          <span class="block-summary-label" title="${label}">${label}</span>
+          <div class="summary-bar-wrap" style="flex:1"><div class="summary-bar" style="width:${(count/maxBC*100).toFixed(1)}%;background:var(--accent)"></div></div>
+          <span class="block-summary-count">${count}</span>
+        `;
+        blockList.appendChild(row);
+      });
+    } else {
+      blockList.innerHTML = `<div style="font-size:0.78rem;color:var(--text2);padding:4px 0">Enable "Connect pixels" to see block breakdown.</div>`;
+    }
+  }
 }
 
 // =====================
@@ -2425,7 +2535,7 @@ function computeBlockMap(cols, rows) {
         gen[i]++;
       }
     }
-    blockCounts[key] = (blockCounts[key] || 0) + 1;
+    blockCounts[label] = (blockCounts[label] || 0) + 1;
 
     // Record block boundary edges
     for(let dx = 0; dx < w; dx++) {
@@ -2623,7 +2733,7 @@ function setupTooltip(wrapper, cols, rows, SCALE) {
     const total = cols * rows;
 
     if(connectEnabled) {
-      const blockCount = blockCounts[block.key] || 0;
+      const blockCount = blockCounts[block.label] || 0;
       tipCount.textContent = `Quantity: ${blockCount}`;
       tipBlock.textContent = `Block: ${block.label}`;
     } else {
@@ -3418,26 +3528,34 @@ const popover = document.getElementById('infoPopover');
 let activeBtn = null;
 let hideTimeout = null;
 
+let popoverRafId = null;
+
+function positionPopover() {
+  if(!activeBtn || !popover.classList.contains('visible')) {
+    popoverRafId = null;
+    return;
+  }
+  const rect = activeBtn.getBoundingClientRect();
+  const popW = 230;
+  let left = rect.left;
+  if(left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+  let top = rect.bottom + 8;
+  if(top + 120 > window.innerHeight) top = rect.top - 120;
+  popover.style.left = left + 'px';
+  popover.style.top = top + 'px';
+  popoverRafId = requestAnimationFrame(positionPopover);
+}
+
 function showPopover(btn, key) {
   const info = INFO_TEXT[key];
   if (!info) return;
   clearTimeout(hideTimeout);
   popover.innerHTML = `<strong>${info.title}</strong>${info.body}`;
-
-  // Position
-  const rect = btn.getBoundingClientRect();
-  const popW = 230;
-  let left = rect.left;
-  if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
-  let top = rect.bottom + 8;
-  if (top + 120 > window.innerHeight) top = rect.top - 120;
-
-  popover.style.left = left + 'px';
-  popover.style.top = top + 'px';
   popover.classList.add('visible');
   if (activeBtn && activeBtn !== btn) activeBtn.classList.remove('active');
   btn.classList.add('active');
   activeBtn = btn;
+  if(!popoverRafId) positionPopover();
 }
 
 function hidePopover() {
