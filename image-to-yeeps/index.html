@@ -1518,6 +1518,7 @@
   <div class="modal" style="max-width:480px;">
     <div class="modal-header">
       <div class="modal-title" style="font-size:1.2rem;">🔍 Find Optimal Settings</div>
+      <button class="close-btn" id="optimalCloseBtn" onclick="closeOptimalModal()"><i data-lucide="x"></i></button>
     </div>
 
     <!-- STEP 1: Configure -->
@@ -3710,6 +3711,7 @@ const OPTIMAL_TOGGLES = [
 ];
 
 let optimalCancelFlag = false;
+let optimalSearchRunning = false;
 let optimalBestResult = null;
 
 function openOptimalModal() {
@@ -3771,16 +3773,18 @@ async function startOptimalSearch() {
   document.getElementById('optimalModal').querySelector('.modal-overlay')?.removeEventListener('click', closeOptimalModal);
   // Prevent clicking outside to close
   document.getElementById('optimalModal').onclick = e => e.stopPropagation();
+  document.getElementById('optimalCloseBtn').style.display = 'none';
   document.querySelectorAll('#optimalToggles input').forEach(el => el.disabled = true);
   optimalCancelFlag = false;
+  optimalSearchRunning = true;
   optimalBestResult = null;
 
   let bestCount = Infinity;
   let bestCombo = null;
+  const initialCount = Object.values(blockCounts).reduce((s, v) => s + v, 0);
   const startTime = Date.now();
 
-  // Enable more optimising so sub-options work
-  document.getElementById('useMoreOptimising').checked = true;
+  const MORE_OPT_CHILDREN = ['useSidewaysVending','useHorrorTable','use1x16','usePassageway','useGrass'];
 
   for(let i = 0; i < total; i++) {
     if(optimalCancelFlag) break;
@@ -3789,6 +3793,10 @@ async function startOptimalSearch() {
     active.forEach((t, idx) => {
       document.getElementById(t.id).checked = !!(i & (1 << idx));
     });
+
+    // Enable moreOptimising if any of its children are on
+    const anyMoreOpt = MORE_OPT_CHILDREN.some(id => document.getElementById(id).checked);
+    document.getElementById('useMoreOptimising').checked = anyMoreOpt;
 
     // Count blocks
     blockCache = null;
@@ -3827,7 +3835,10 @@ async function startOptimalSearch() {
   });
   document.getElementById('useMoreOptimising').checked = savedMoreOpt;
   document.getElementById('optimalModal').onclick = null;
+  document.getElementById('optimalCloseBtn').disabled = false;
+  document.getElementById('optimalCloseBtn').style.display = '';
   document.querySelectorAll('#optimalToggles input').forEach(el => el.disabled = false);
+  optimalSearchRunning = false;
   blockCache = null;
   computeBlockMap(canvasCols, canvasRows);
   drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
@@ -3841,14 +3852,18 @@ async function startOptimalSearch() {
 
   // Show result
   optimalBestResult = bestCombo;
-  const currentCount = Object.values(blockCounts).reduce((s, v) => s + v, 0);
   document.getElementById('optimalResult').innerHTML =
     `✅ Best: <strong style="color:var(--accent2)">${bestCount} block${bestCount !== 1 ? 's' : ''}</strong>` +
-    (bestCount < currentCount ? ` (saves ${currentCount - bestCount} vs current ${currentCount})` : ' (same as current)');
+    (bestCount < initialCount ? ` (saves ${initialCount - bestCount} vs current ${initialCount})`
+    : bestCount > initialCount ? ` (current ${initialCount} is already better)`
+    : ' (same as current)');
 
   const details = OPTIMAL_TOGGLES.map(t => {
+    const excluded = !document.getElementById(t.optId).checked;
     const label = document.getElementById(t.optId).closest('label')?.querySelector('.check-label')?.textContent?.trim() || t.id;
-    return `${bestCombo[t.id] ? '✓' : '✗'} ${label}`;
+    const style = excluded ? ' style="opacity:0.35"' : '';
+    const suffix = excluded ? ' <small>(excluded)</small>' : '';
+    return `<span${style}>${bestCombo[t.id] ? '✓' : '✗'} ${label}${suffix}</span>`;
   }).join('<br>');
   document.getElementById('optimalResultDetail').innerHTML = details;
 
@@ -3880,6 +3895,7 @@ function applyOptimalResult() {
 document.getElementById('sharePaletteBtn').onclick = sharePalette;
 document.getElementById('optionsBtn').onclick = () => document.getElementById('optionsModal').classList.add('open');
 document.getElementById('optionsModal').addEventListener('click', e => { if(e.target === document.getElementById('optionsModal')) document.getElementById('optionsModal').classList.remove('open'); });
+document.getElementById('optimalModal').addEventListener('click', e => { if(e.target === document.getElementById('optimalModal') && !optimalSearchRunning) closeOptimalModal(); });
 window.addEventListener('load', loadFromHash);
 
 // =====================
