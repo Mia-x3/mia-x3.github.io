@@ -1374,6 +1374,16 @@
           <span class="custom-check"></span>
           <span class="check-label">1x16 Wood block (sideways 2x16)</span>
         </label>
+        <label class="check-row">
+          <input type="checkbox" id="usePassageway">
+          <span class="custom-check"></span>
+          <span class="check-label">6x8 Wooden passageway</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="useGrass">
+          <span class="custom-check"></span>
+          <span class="check-label">6x16 Grass block <button class="info-btn" data-info="grass-block">?</button></span>
+        </label>
       </div>
     </div>
   </div>
@@ -1789,6 +1799,8 @@ document.getElementById('includeTransparency').onchange = () => {
 document.getElementById('useVending').checked = localStorage.getItem('px_use_vending') === 'true';
 document.getElementById('useSidewaysVending').checked = localStorage.getItem('px_use_sideways_vending') === 'true';
 document.getElementById('use1x16').checked = localStorage.getItem('px_use_1x16') === 'true';
+document.getElementById('usePassageway').checked = localStorage.getItem('px_use_passageway') === 'true';
+document.getElementById('useGrass').checked = localStorage.getItem('px_use_grass') === 'true';
 document.getElementById('useMoreOptimising').checked = localStorage.getItem('px_use_more_optimizing') === 'true';
 document.getElementById('useHorrorTable').checked = localStorage.getItem('px_use_horror') === 'true';
 document.getElementById('useBuildplate').checked = localStorage.getItem('px_use_buildplate') === 'true';
@@ -1806,6 +1818,14 @@ document.getElementById('useMoreOptimising').onchange = () => {
 };
 document.getElementById('use1x16').onchange = () => {
   localStorage.setItem('px_use_1x16', document.getElementById('use1x16').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+document.getElementById('usePassageway').onchange = () => {
+  localStorage.setItem('px_use_passageway', document.getElementById('usePassageway').checked);
+  if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
+};
+document.getElementById('useGrass').onchange = () => {
+  localStorage.setItem('px_use_grass', document.getElementById('useGrass').checked);
   if(canvasCols) { blockCache = null; computeBlockMap(canvasCols, canvasRows); drawBlockOutlines(canvasCols, canvasRows, getDisplayScale()); updateStats(canvasCols, canvasRows); }
 };
 document.getElementById('useHorrorTable').onchange = () => {
@@ -2631,7 +2651,9 @@ function setupTooltip(wrapper, cols, rows, SCALE) {
 // for non-square, so "4x8" not "8x4"), used as the blockCounts key.
 const BLOCK_SHAPES = [
   {key:"16x16", label:"16x16 Build plate",              type:"buildplate",  w:16, h:16},
+  {key:"6x16",  label:"6x16 Grass block",               type:"grass",       w:6,  h:16},
   {key:"8x8",   label:"8x8 Wood block",                 type:"wood",        w:8,  h:8 },
+  {key:"6x8",   label:"6x8 Wooden passageway",          type:"passageway",  w:6,  h:8 },
   {key:"4x8",   label:"4x8 Wood block",                 type:"wood",        w:4,  h:8 },
   {key:"2x16",  label:"2x16 Wood block",                type:"wood",        w:2,  h:16},
   {key:"3x6",   label:"3x6 Horror table (Maroon only)", type:"horror",      w:3,  h:6 },
@@ -2657,6 +2679,8 @@ function buildActiveBlocks() {
   const useSideways     = useMoreOpt && (document.getElementById('useSidewaysVending')?.checked ?? false);
   const useHorror       = useMoreOpt && (document.getElementById('useHorrorTable')?.checked    ?? false);
   const use1x16         = useMoreOpt && (document.getElementById('use1x16')?.checked           ?? false);
+  const usePassageway   = useMoreOpt && (document.getElementById('usePassageway')?.checked     ?? false);
+  const useGrass        = useMoreOpt && (document.getElementById('useGrass')?.checked          ?? false);
 
   const result = [];
   for(const s of BLOCK_SHAPES) {
@@ -2665,6 +2689,8 @@ function buildActiveBlocks() {
     if(s.type === 'vending_side'&& !useSideways)   continue;
     if(s.type === 'horror'      && !useHorror)     continue;
     if(s.type === 'wood1x16'    && !use1x16)       continue;
+    if(s.type === 'passageway'  && !usePassageway) continue;
+    if(s.type === 'grass'       && !useGrass)      continue;
     // Add canonical orientation
     result.push({key:s.key, label:s.label, type:s.type, w:s.w, h:s.h, area:s.w*s.h});
     // Add flipped orientation for non-square blocks
@@ -3377,6 +3403,10 @@ const INFO_TEXT = {
   'more-optimizing': {
     title: 'More Optimizing',
     body: 'These optimizations require the build to be away from the ground/wall behind it.'
+  },
+  'grass-block': {
+    title: '6x16 Grass Block',
+    body: 'This block is not purchasable and only available from copying FREEBLOCKS.'
   },
   'palette': {
     title: 'Color Palette',
