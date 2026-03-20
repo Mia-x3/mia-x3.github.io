@@ -1500,11 +1500,66 @@
           <span class="check-label">6x16 Grass block <button class="info-btn" data-info="grass-block">?</button></span>
         </label>
       </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <button class="btn-outline" style="flex:1;" onclick="openOptimalModal()">🔍 Find Optimal Settings</button>
+          <button class="info-btn" data-info="optimal-settings" onclick="event.stopPropagation()">?</button>
+        </div>
+        <div style="font-size:0.72rem;color:#e8a030;background:rgba(232,160,48,0.08);border:1px solid rgba(232,160,48,0.2);border-radius:7px;padding:5px 8px;line-height:1.4;">
+          ⚠ This will likely lag or freeze your browser while running
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
+<!-- FIND OPTIMAL SETTINGS MODAL -->
+<div class="modal-overlay" id="optimalModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:1.2rem;">🔍 Find Optimal Settings</div>
+    </div>
+
+    <!-- STEP 1: Configure -->
+    <div id="optimalStep1">
+      <p style="font-size:0.82rem;color:var(--text2);margin-bottom:14px;">Select which block options to include in the search. Unchecked options stay at their current value.</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;" id="optimalToggles">
+        <label class="check-row"><input type="checkbox" id="opt_useBuildplate" checked><span class="custom-check"></span><span class="check-label">16x16 Build plate</span></label>
+        <label class="check-row"><input type="checkbox" id="opt_useVending" checked><span class="custom-check"></span><span class="check-label">3x2 Vending machine</span></label>
+        <label class="check-row"><input type="checkbox" id="opt_useSidewaysVending" checked><span class="custom-check"></span><span class="check-label">1x3 Sideways Vending machine</span></label>
+        <label class="check-row"><input type="checkbox" id="opt_useHorrorTable" checked><span class="custom-check"></span><span class="check-label">3x6 Horror table</span></label>
+        <label class="check-row"><input type="checkbox" id="opt_use1x16" checked><span class="custom-check"></span><span class="check-label">1x16 Wood block</span></label>
+        <label class="check-row"><input type="checkbox" id="opt_usePassageway" checked><span class="custom-check"></span><span class="check-label">6x8 Wooden passageway</span></label>
+        <label class="check-row"><input type="checkbox" id="opt_useGrass" checked><span class="custom-check"></span><span class="check-label">6x16 Grass block</span></label>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text2);margin-bottom:14px;" id="optimalCombCount"></div>
+      <button class="btn" onclick="startOptimalSearch()">Start Search</button>
+    </div>
+
+    <!-- STEP 2: Running -->
+    <div id="optimalStep2" style="display:none;">
+      <div style="font-size:0.82rem;color:var(--text2);margin-bottom:8px;" id="optimalStatus">Searching...</div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:999px;height:8px;overflow:hidden;margin-bottom:8px;">
+        <div id="optimalProgressFill" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:999px;width:0%;transition:width 0.3s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text2);margin-bottom:16px;">
+        <span id="optimalProgressText">0 / 0</span>
+        <span id="optimalETA">ETA: calculating...</span>
+      </div>
+      <button class="btn-outline" onclick="cancelOptimalSearch()" style="width:100%;">Cancel</button>
+    </div>
+
+    <!-- STEP 3: Result -->
+    <div id="optimalStep3" style="display:none;">
+      <div style="font-size:0.9rem;color:var(--text);margin-bottom:12px;" id="optimalResult"></div>
+      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:16px;" id="optimalResultDetail"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="applyOptimalResult()" style="flex:1;">Apply</button>
+        <button class="btn-outline" onclick="closeOptimalModal()" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <!-- TOOLTIP -->
@@ -3639,6 +3694,189 @@ async function loadFromHash() {
 }
 
 document.getElementById('shareBtn').onclick = shareURL;
+
+// =====================
+// FIND OPTIMAL SETTINGS
+// =====================
+
+const OPTIMAL_TOGGLES = [
+  {id:'useBuildplate',    optId:'opt_useBuildplate'},
+  {id:'useVending',       optId:'opt_useVending'},
+  {id:'useSidewaysVending', optId:'opt_useSidewaysVending'},
+  {id:'useHorrorTable',   optId:'opt_useHorrorTable'},
+  {id:'use1x16',          optId:'opt_use1x16'},
+  {id:'usePassageway',    optId:'opt_usePassageway'},
+  {id:'useGrass',         optId:'opt_useGrass'},
+];
+
+let optimalCancelFlag = false;
+let optimalBestResult = null;
+
+function openOptimalModal() {
+  if(!pixelColorData.length) { showToast('⚠️ Load an image first'); return; }
+  document.getElementById('optimalStep1').style.display = '';
+  document.getElementById('optimalStep2').style.display = 'none';
+  document.getElementById('optimalStep3').style.display = 'none';
+  updateOptimalCombCount();
+  document.getElementById('optimalModal').classList.add('open');
+}
+
+function closeOptimalModal() {
+  optimalCancelFlag = true;
+  document.getElementById('optimalModal').classList.remove('open');
+}
+
+function updateOptimalCombCount() {
+  const active = OPTIMAL_TOGGLES.filter(t => document.getElementById(t.optId).checked);
+  const count = Math.pow(2, active.length);
+  document.getElementById('optimalCombCount').textContent =
+    `${active.length} option${active.length !== 1 ? 's' : ''} selected → ${count} combination${count !== 1 ? 's' : ''} to test`;
+}
+
+OPTIMAL_TOGGLES.forEach(t => {
+  document.getElementById(t.optId)?.addEventListener('change', updateOptimalCombCount);
+});
+
+function countTotalBlocks() {
+  // Re-run block map with current settings and count distinct blocks
+  const savedCache = blockCache;
+  blockCache = null;
+  computeBlockMap(canvasCols, canvasRows);
+  const total = Object.values(blockCounts).reduce((s, v) => s + v, 0);
+  blockCache = savedCache; // restore cache
+  return total;
+}
+
+async function startOptimalSearch() {
+  if(!pixelColorData.length) return;
+
+  // Save current state
+  const savedStates = {};
+  OPTIMAL_TOGGLES.forEach(t => {
+    savedStates[t.id] = document.getElementById(t.id).checked;
+  });
+  const savedMoreOpt = document.getElementById('useMoreOptimising').checked;
+
+  // Build list of active (searchable) toggles
+  const active = OPTIMAL_TOGGLES.filter(t => document.getElementById(t.optId).checked);
+  const total = Math.pow(2, active.length);
+
+  // Switch to step 2
+  document.getElementById('optimalStep1').style.display = 'none';
+  document.getElementById('optimalStep2').style.display = '';
+  document.getElementById('optimalProgressFill').style.width = '0%';
+  document.getElementById('optimalProgressText').textContent = `0 / ${total}`;
+  document.getElementById('optimalETA').textContent = 'ETA: calculating...';
+  document.getElementById('optimalStatus').textContent = 'Searching...';
+  document.getElementById('optimalModal').querySelector('.modal-overlay')?.removeEventListener('click', closeOptimalModal);
+  // Prevent clicking outside to close
+  document.getElementById('optimalModal').onclick = e => e.stopPropagation();
+  document.querySelectorAll('#optimalToggles input').forEach(el => el.disabled = true);
+  optimalCancelFlag = false;
+  optimalBestResult = null;
+
+  let bestCount = Infinity;
+  let bestCombo = null;
+  const startTime = Date.now();
+
+  // Enable more optimising so sub-options work
+  document.getElementById('useMoreOptimising').checked = true;
+
+  for(let i = 0; i < total; i++) {
+    if(optimalCancelFlag) break;
+
+    // Apply combination i
+    active.forEach((t, idx) => {
+      document.getElementById(t.id).checked = !!(i & (1 << idx));
+    });
+
+    // Count blocks
+    blockCache = null;
+    computeBlockMap(canvasCols, canvasRows);
+    const count = Object.values(blockCounts).reduce((s, v) => s + v, 0);
+
+    if(count < bestCount) {
+      bestCount = count;
+      bestCombo = {};
+      OPTIMAL_TOGGLES.forEach(t => {
+        bestCombo[t.id] = document.getElementById(t.id).checked;
+      });
+    }
+
+    // Update UI
+    const pct = ((i + 1) / total * 100).toFixed(1);
+    document.getElementById('optimalProgressFill').style.width = pct + '%';
+    document.getElementById('optimalProgressText').textContent = `${i + 1} / ${total}`;
+
+    if(i > 0) {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rate = (i + 1) / elapsed;
+      const remaining = (total - i - 1) / rate;
+      document.getElementById('optimalETA').textContent = remaining < 1
+        ? 'ETA: < 1s'
+        : `ETA: ${remaining < 60 ? Math.ceil(remaining) + 's' : Math.ceil(remaining/60) + 'm ' + (Math.ceil(remaining)%60) + 's'}`;
+    }
+
+    // Yield to keep UI responsive every 8 iterations
+    if(i % 8 === 7) await new Promise(r => setTimeout(r, 0));
+  }
+
+  // Restore original settings
+  OPTIMAL_TOGGLES.forEach(t => {
+    document.getElementById(t.id).checked = savedStates[t.id];
+  });
+  document.getElementById('useMoreOptimising').checked = savedMoreOpt;
+  document.getElementById('optimalModal').onclick = null;
+  document.querySelectorAll('#optimalToggles input').forEach(el => el.disabled = false);
+  blockCache = null;
+  computeBlockMap(canvasCols, canvasRows);
+  drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  updateStats(canvasCols, canvasRows);
+
+  if(optimalCancelFlag) {
+    document.getElementById('optimalStep2').style.display = 'none';
+    document.getElementById('optimalStep1').style.display = '';
+    return;
+  }
+
+  // Show result
+  optimalBestResult = bestCombo;
+  const currentCount = Object.values(blockCounts).reduce((s, v) => s + v, 0);
+  document.getElementById('optimalResult').innerHTML =
+    `✅ Best: <strong style="color:var(--accent2)">${bestCount} block${bestCount !== 1 ? 's' : ''}</strong>` +
+    (bestCount < currentCount ? ` (saves ${currentCount - bestCount} vs current ${currentCount})` : ' (same as current)');
+
+  const details = OPTIMAL_TOGGLES.map(t => {
+    const label = document.getElementById(t.optId).closest('label')?.querySelector('.check-label')?.textContent?.trim() || t.id;
+    return `${bestCombo[t.id] ? '✓' : '✗'} ${label}`;
+  }).join('<br>');
+  document.getElementById('optimalResultDetail').innerHTML = details;
+
+  document.getElementById('optimalStep2').style.display = 'none';
+  document.getElementById('optimalStep3').style.display = '';
+}
+
+function cancelOptimalSearch() {
+  optimalCancelFlag = true;
+}
+
+function applyOptimalResult() {
+  if(!optimalBestResult) return;
+  OPTIMAL_TOGGLES.forEach(t => {
+    document.getElementById(t.id).checked = optimalBestResult[t.id];
+  });
+  // Enable more optimising if any sub-option is on
+  const anyMoreOpt = ['useSidewaysVending','useHorrorTable','use1x16','usePassageway','useGrass']
+    .some(id => optimalBestResult[id]);
+  document.getElementById('useMoreOptimising').checked = anyMoreOpt;
+  updateBlockTypeOptionsVisibility();
+  blockCache = null;
+  computeBlockMap(canvasCols, canvasRows);
+  drawBlockOutlines(canvasCols, canvasRows, getDisplayScale());
+  updateStats(canvasCols, canvasRows);
+  closeOptimalModal();
+  showToast('✅ Optimal settings applied!');
+}
 document.getElementById('sharePaletteBtn').onclick = sharePalette;
 document.getElementById('optionsBtn').onclick = () => document.getElementById('optionsModal').classList.add('open');
 document.getElementById('optionsModal').addEventListener('click', e => { if(e.target === document.getElementById('optionsModal')) document.getElementById('optionsModal').classList.remove('open'); });
@@ -3729,6 +3967,10 @@ const INFO_TEXT = {
   'grass-block': {
     title: '6x16 Grass Block',
     body: 'This block is not purchasable and only available from copying FREEBLOCKS.'
+  },
+  'optimal-settings': {
+    title: 'Find Optimal Settings',
+    body: 'Tests every combination of block options to find which settings result in the fewest total blocks. Useful for minimising build cost. The more options you include, the more combinations are tested (2ⁿ total).'
   },
   'palette': {
     title: 'Color Palette',
