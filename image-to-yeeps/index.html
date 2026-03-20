@@ -1356,7 +1356,7 @@
       <label class="check-row">
         <input type="checkbox" id="useMoreOptimising">
         <span class="custom-check"></span>
-        <span class="check-label">More optimising</span>
+        <span class="check-label">More optimising <button class="info-btn" data-info="more-optimising">?</button></span>
       </label>
       <div id="moreOptimisingOptions" style="padding-left:22px;">
         <label class="check-row" id="useSidewaysVendingRow">
@@ -3373,6 +3373,10 @@ const INFO_TEXT = {
   'dithering': {
     title: 'Dithering',
     body: 'Uses Floyd-Steinberg dithering to blend colors more naturally. Instead of hard color snapping, it scatters pixel errors to neighbouring pixels, creating gradients using patterns. Makes images look smoother but less "clean".'
+  },
+  'more-optimising': {
+    title: 'More Optimising',
+    body: 'These optimizations require the build to be away from the ground/wall behind it.'
   },
   'palette': {
     title: 'Color Palette',
