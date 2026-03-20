@@ -1563,7 +1563,7 @@ let disabledColors = new Set();
 let customColors = JSON.parse(localStorage.getItem('px_custom_colors') || '[]');
 
 function getAllActiveColors() {
-  const all = [...DEFAULT_COLORS.map(c=>({...c,custom:false})), ...customColors.map(c=>({...c,custom:true}))];
+  const all = [...DEFAULT_COLORS.map(c=>({...c, hex: c.hex.toLowerCase(), custom:false})), ...customColors.map(c=>({...c, hex: c.hex.toLowerCase(), custom:true}))];
   return all.filter(c => !disabledColors.has(c.hex));
 }
 
@@ -1726,12 +1726,12 @@ function renderPalette() {
     const wrap = document.createElement('div');
     wrap.className = 'palette-swatch-wrap';
     const sw = document.createElement('div');
-    sw.className = 'palette-swatch' + (disabledColors.has(color.hex) ? ' disabled' : '') + (color.custom ? ' custom-color' : '');
+    sw.className = 'palette-swatch' + (disabledColors.has(color.hex.toLowerCase()) ? ' disabled' : '') + (color.custom ? ' custom-color' : '');
     sw.style.background = color.hex;
     sw.title = color.name;
     sw.onclick = () => {
-      if(disabledColors.has(color.hex)) disabledColors.delete(color.hex);
-      else disabledColors.add(color.hex);
+      if(disabledColors.has(color.hex.toLowerCase())) disabledColors.delete(color.hex.toLowerCase());
+      else disabledColors.add(color.hex.toLowerCase());
       renderPalette();
       if(sourceImage) debouncedConvert();
     };
@@ -3036,7 +3036,6 @@ let redoStack = [];
 function snapshotForUndo() {
   const snap = {
     pixels: pixelColorData.map(row => row.slice()),
-    bMap:   blockMap.map(row => row.slice()),
     bCounts: {...blockCounts},
     bEdges: new Set(edges),
   };
@@ -3055,11 +3054,8 @@ function applySnapshot(snap) {
       const h = pixelColorData[y][x].hex;
       pixelCounts[h] = (pixelCounts[h] || 0) + 1;
     }
-  // Restore block map & edges directly — no recompute needed
-  blockMap    = snap.bMap.map(row => row.slice());
-  blockCounts = {...snap.bCounts};
-  edges       = new Set(snap.bEdges);
-  blockCache  = null; // fingerprint may differ from restored state
+  blockCache = null;
+  computeBlockMap(canvasCols, canvasRows);
 
   const canvas = document.getElementById('outputCanvas');
   const ctx = canvas.getContext('2d');
