@@ -3759,9 +3759,13 @@ async function startOptimalSearch() {
   });
   const savedMoreOpt = document.getElementById('useMoreOptimising').checked;
 
-  // Build list of active (searchable) toggles
+  // Build list of active (searchable) toggles and excluded ones
   const active = OPTIMAL_TOGGLES.filter(t => document.getElementById(t.optId).checked);
+  const excluded = OPTIMAL_TOGGLES.filter(t => !document.getElementById(t.optId).checked);
   const total = Math.pow(2, active.length);
+
+  // Force excluded options to OFF for the entire search
+  excluded.forEach(t => { document.getElementById(t.id).checked = false; });
 
   // Switch to step 2
   document.getElementById('optimalStep1').style.display = 'none';
@@ -3807,7 +3811,8 @@ async function startOptimalSearch() {
       bestCount = count;
       bestCombo = {};
       OPTIMAL_TOGGLES.forEach(t => {
-        bestCombo[t.id] = document.getElementById(t.id).checked;
+        const isExcluded = !document.getElementById(t.optId).checked;
+        bestCombo[t.id] = isExcluded ? false : document.getElementById(t.id).checked;
       });
     }
 
@@ -3859,11 +3864,12 @@ async function startOptimalSearch() {
     : ' (same as current)');
 
   const details = OPTIMAL_TOGGLES.map(t => {
-    const excluded = !document.getElementById(t.optId).checked;
+    const isExcluded = !document.getElementById(t.optId).checked;
     const label = document.getElementById(t.optId).closest('label')?.querySelector('.check-label')?.textContent?.trim() || t.id;
-    const style = excluded ? ' style="opacity:0.35"' : '';
-    const suffix = excluded ? ' <small>(excluded)</small>' : '';
-    return `<span${style}>${bestCombo[t.id] ? '✓' : '✗'} ${label}${suffix}</span>`;
+    const style = isExcluded ? ' style="opacity:0.35"' : '';
+    const check = isExcluded ? '✗' : (bestCombo[t.id] ? '✓' : '✗');
+    const suffix = isExcluded ? ' <small>(excluded)</small>' : '';
+    return `<span${style}>${check} ${label}${suffix}</span>`;
   }).join('<br>');
   document.getElementById('optimalResultDetail').innerHTML = details;
 
@@ -3878,11 +3884,12 @@ function cancelOptimalSearch() {
 function applyOptimalResult() {
   if(!optimalBestResult) return;
   OPTIMAL_TOGGLES.forEach(t => {
-    document.getElementById(t.id).checked = optimalBestResult[t.id];
+    const excluded = !document.getElementById(t.optId).checked;
+    document.getElementById(t.id).checked = excluded ? false : optimalBestResult[t.id];
   });
   // Enable more optimising if any sub-option is on
   const anyMoreOpt = ['useSidewaysVending','useHorrorTable','use1x16','usePassageway','useGrass']
-    .some(id => optimalBestResult[id]);
+    .some(id => document.getElementById(id).checked);
   document.getElementById('useMoreOptimising').checked = anyMoreOpt;
   updateBlockTypeOptionsVisibility();
   blockCache = null;
