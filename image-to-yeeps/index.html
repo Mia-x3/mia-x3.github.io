@@ -595,6 +595,27 @@
   }
   .close-btn:hover { background: rgba(223,84,84,0.15); border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
 
+  /* SHARE OPTIONS */
+  .share-option {
+    display: flex; align-items: flex-start; gap: 14px; text-align: left;
+    font-family: var(--font, 'Lilita One', cursive);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 16px; cursor: pointer; width: 100%;
+    transition: all 0.25s var(--spring); color: var(--text);
+  }
+  .share-option:hover { background: rgba(223,84,84,0.1); border-color: var(--accent); transform: translateY(-2px); }
+  .share-option-icon { font-size: 1.8rem; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+  .share-option-body { flex: 1; }
+  .share-option-title { font-size: 1rem; font-weight: 700; color: var(--accent2); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .share-option-desc { font-size: 0.78rem; color: var(--text2); line-height: 1.5; }
+  .share-badge {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    background: #5865F2; color: #fff; padding: 2px 7px; border-radius: 999px;
+  }
+  .share-option-disabled { opacity: 0.55; cursor: not-allowed; }
+  .share-option-disabled:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); transform: none; }
+
   /* THEME PRESETS */
   .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 20px; }
   .theme-card {
@@ -802,8 +823,8 @@
   .import-palette-btn:hover { border-color: rgba(223,158,84,0.5); background: rgba(223,158,84,0.1); transform: scale(1.1); }
 
   /* COLOR SUMMARY */
-  #colorSummaryList { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; }
-  #blockSummaryList { display: flex; flex-direction: column; max-height: 200px; overflow-y: auto; }
+  #colorSummaryList { display: flex; flex-direction: column; }
+  #blockSummaryList { display: flex; flex-direction: column; }
   .summary-row, .block-summary-row {
     display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text2);
     flex-wrap: wrap;
@@ -1561,6 +1582,38 @@
     </div>
   </div>
 </div>
+
+<!-- SHARE MODE MODAL -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:1.2rem;">🔗 Share Image</div>
+      <button class="close-btn" onclick="closeShareModal()"><i data-lucide="x"></i></button>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;">Choose how you want to share this image.</p>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <!-- Quick Link -->
+      <button class="share-option" onclick="shareQuickLink()">
+        <div class="share-option-icon">⚡</div>
+        <div class="share-option-body">
+          <div class="share-option-title">Quick Link</div>
+          <div class="share-option-desc">Instant. Shares your pixel art and settings. Pixel size and dithering can't be changed after loading. Expires in 2 weeks.</div>
+        </div>
+      </button>
+
+      <!-- Full Project -->
+      <button class="share-option" id="shareFullBtn" onclick="shareFullProject()">
+        <div class="share-option-icon">🖼️</div>
+        <div class="share-option-body">
+          <div class="share-option-title">Full Project</div>
+          <div class="share-option-desc">Stores the original image so anyone can re-edit everything, including pixel size, dithering, and all of it. Max image size 10MB. Expires in 3 days.</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- TOOLTIP -->
@@ -1838,6 +1891,7 @@ function resetPalette() {
   showToast('🗑 Palette reset to defaults');
 }
 let sourceImage = null;
+let sourceImageDataURL = null;
 const fileInput = document.getElementById('fileInput');
 const uploadArea = document.getElementById('uploadArea');
 
@@ -1866,6 +1920,7 @@ function loadImageFile(file) {
     const img = new Image();
     img.onload = () => {
       sourceImage = img;
+      sourceImageDataURL = ev.target.result;
       uploadArea.querySelector('.upload-icon').innerHTML = '<i data-lucide="circle-check"></i>';
       renderIcons(uploadArea);
       uploadArea.querySelector('.upload-text').innerHTML = `<b>${file.name}</b><br><small>${img.width}×${img.height}px</small>`;
@@ -3484,11 +3539,14 @@ function copyToClipboard(withOutlines) {
 // =====================
 const WORKER_URL = 'https://yeeps-share.nonekyeep.workers.dev';
 
-async function sbSave(type, data) {
+async function sbSave(type, data, ttl) {
   // type is kept for compatibility; the worker stores raw data and returns an id.
   // We prefix the data with the type so loads can tell image vs palette apart.
+  const headers = {};
+  if(ttl) headers['X-TTL'] = String(ttl);
   const res = await fetch(WORKER_URL, {
     method: 'POST',
+    headers,
     body: type + ':' + data
   });
   if(!res.ok) throw new Error('Share save failed: ' + res.status);
@@ -3624,7 +3682,26 @@ function decodePalette(raw) {
   catch(e) { return null; }
 }
 
-async function shareURL() {
+function openShareModal() {
+  const bytes = buildImageBytes();
+  if(!bytes) { showToast('⚠️ No image to share yet'); return; }
+  // Enable/disable Full Project based on whether we have the original image
+  const fullBtn = document.getElementById('shareFullBtn');
+  if(sourceImageDataURL) {
+    fullBtn.classList.remove('share-option-disabled');
+    fullBtn.querySelector('.share-option-desc').innerHTML = "Stores the original image so anyone can re-edit everything, including pixel size, dithering, and all of it. Max image size 10MB. Expires in 3 days.";
+  } else {
+    fullBtn.classList.add('share-option-disabled');
+    fullBtn.querySelector('.share-option-desc').innerHTML = "<span style='color:var(--accent)'>Unavailable — the original image isn't loaded in this session. Re-upload an image to use Full Project.</span>";
+  }
+  document.getElementById('shareModal').classList.add('open');
+}
+function closeShareModal() {
+  document.getElementById('shareModal').classList.remove('open');
+}
+
+async function shareQuickLink() {
+  closeShareModal();
   const bytes = buildImageBytes();
   if(!bytes) { showToast('⚠️ No image to share yet'); return; }
   showToast('⏳ Creating share link...');
@@ -3644,11 +3721,51 @@ async function shareURL() {
     };
     const settingsStr = Object.entries(allSettings).map(([k,v])=>`${k}=${v}`).join('&');
     const data = settingsStr + ';' + toUrlBase64(compressed);
-    const id = await sbSave('img', data);
+    const id = await sbSave('img', data, 1209600); // 2 weeks
     const url = location.href.split('#')[0] + '#s:' + id;
-    navigator.clipboard.writeText(url).then(() => showToast('🔗 Share link copied!')).catch(() => prompt('Copy this share URL:', url));
+    navigator.clipboard.writeText(url).then(() => showToast('🔗 Quick link copied! (expires in 2 weeks)')).catch(() => prompt('Copy this share URL:', url));
   } catch(e) {
     showToast('⚠️ Failed to create share link');
+    console.error(e);
+  }
+}
+
+async function shareFullProject() {
+  if(!sourceImageDataURL) {
+    showToast('⚠️ Re-upload the original image to use Full Project');
+    return;
+  }
+  closeShareModal();
+  // Check size (data URLs are ~33% larger than the raw bytes)
+  const approxBytes = sourceImageDataURL.length * 0.75;
+  if(approxBytes > 10 * 1024 * 1024) {
+    showToast('⚠️ Image too large for Full Project (max 10MB)');
+    return;
+  }
+  showToast('⏳ Creating full project link...');
+  try {
+    const s = getSettings();
+    const allSettings = {
+      ...s,
+      vending:    document.getElementById('useVending').checked ? 1 : 0,
+      buildplate: document.getElementById('useBuildplate').checked ? 1 : 0,
+      moreopt:    document.getElementById('useMoreOptimising').checked ? 1 : 0,
+      sideways:   document.getElementById('useSidewaysVending').checked ? 1 : 0,
+      horror:     document.getElementById('useHorrorTable').checked ? 1 : 0,
+      wood1x16:   document.getElementById('use1x16').checked ? 1 : 0,
+      passageway: document.getElementById('usePassageway').checked ? 1 : 0,
+      grass:      document.getElementById('useGrass').checked ? 1 : 0,
+    };
+    const settingsStr = Object.entries(allSettings).map(([k,v])=>`${k}=${v}`).join('&');
+    // Compress the source image data URL with deflate for smaller storage
+    const imgBytes = new TextEncoder().encode(sourceImageDataURL);
+    const compressed = await compress(imgBytes);
+    const data = settingsStr + ';' + toUrlBase64(compressed);
+    const id = await sbSave('full', data, 259200); // 3 days
+    const url = location.href.split('#')[0] + '#f:' + id;
+    navigator.clipboard.writeText(url).then(() => showToast('🖼️ Full project link copied! (expires in 3 days)')).catch(() => prompt('Copy this URL:', url));
+  } catch(e) {
+    showToast('⚠️ Failed to create full project link');
     console.error(e);
   }
 }
@@ -3715,7 +3832,40 @@ async function loadFromHash() {
   const hash = location.hash.slice(1);
   if(!hash) return;
 
-  // Supabase short image link
+  // Full Project link — restores the original image, fully editable
+  if(hash.startsWith('f:')) {
+    try {
+      showToast('⏳ Loading full project...');
+      const row = await sbLoad(hash.slice(2));
+      const firstSemi = row.data.indexOf(';');
+      const settingsStr = row.data.slice(0, firstSemi);
+      const b64 = row.data.slice(firstSemi + 1);
+      const settings = {};
+      settingsStr.split('&').forEach(pair => { const [k,v] = pair.split('='); if(k) settings[k] = isNaN(v) ? v : +v; });
+      const bytes = await decompress(fromUrlBase64(b64));
+      const dataUrl = new TextDecoder().decode(bytes);
+      // Restore source image then run normal conversion (everything editable)
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          sourceImage = img;
+          sourceImageDataURL = dataUrl;
+          uploadArea.querySelector('.upload-icon').innerHTML = '<i data-lucide="circle-check"></i>';
+          renderIcons(uploadArea);
+          uploadArea.querySelector('.upload-text').innerHTML = `<b>Shared project</b><br><small>${img.width}×${img.height}px</small>`;
+          applyAllSettings(settings);
+          convertImage();
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+      showToast('🖼️ Full project loaded — fully editable!');
+    } catch(e) { showToast('⚠️ Failed to load full project'); console.error(e); }
+    history.replaceState(null, '', location.pathname); return;
+  }
+
+  // Quick image link
   if(hash.startsWith('s:')) {
     try {
       showToast('⏳ Loading shared image...');
@@ -3795,7 +3945,7 @@ async function loadFromHash() {
   loadParsedImage(state);
 }
 
-document.getElementById('shareBtn').onclick = shareURL;
+document.getElementById('shareBtn').onclick = openShareModal;
 
 // =====================
 // FIND OPTIMAL SETTINGS
@@ -4004,6 +4154,7 @@ document.getElementById('sharePaletteBtn').onclick = sharePalette;
 document.getElementById('optionsBtn').onclick = () => document.getElementById('optionsModal').classList.add('open');
 document.getElementById('optionsModal').addEventListener('click', e => { if(e.target === document.getElementById('optionsModal')) document.getElementById('optionsModal').classList.remove('open'); });
 document.getElementById('optimalModal').addEventListener('click', e => { if(e.target === document.getElementById('optimalModal') && !optimalSearchRunning) closeOptimalModal(); });
+document.getElementById('shareModal').addEventListener('click', e => { if(e.target === document.getElementById('shareModal')) closeShareModal(); });
 window.addEventListener('load', loadFromHash);
 
 // =====================
