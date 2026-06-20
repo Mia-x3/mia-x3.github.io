@@ -3480,42 +3480,31 @@ function copyToClipboard(withOutlines) {
 }
 
 // =====================
-// SUPABASE SHORT LINKS
+// CLOUDFLARE WORKER SHORT LINKS
 // =====================
-const SB_URL  = 'https://umrzjlgvmmaumhhdkocc.supabase.co';
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcnpqbGd2bW1hdW1oaGRrb2NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjIyODgsImV4cCI6MjA4OTU5ODI4OH0._4z-h1GWWPIQJglxD_frotH9OHMUM7Px_1tGxrlwq4Q';
-const SB_HEADERS = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };
-
-function genShortId() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let id = '';
-  for(let i = 0; i < 8; i++) id += chars[Math.floor(Math.random() * chars.length)];
-  return id;
-}
+const WORKER_URL = 'https://yeeps-share.nonekyeep.workers.dev';
 
 async function sbSave(type, data) {
-  let id = genShortId();
-  // Retry on collision (extremely unlikely)
-  for(let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(`${SB_URL}/rest/v1/shared_images`, {
-      method: 'POST',
-      headers: { ...SB_HEADERS, 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ id, type, data })
-    });
-    if(res.ok) return id;
-    if(res.status === 409) { id = genShortId(); continue; }
-    throw new Error('Supabase save failed: ' + res.status);
-  }
+  // type is kept for compatibility; the worker stores raw data and returns an id.
+  // We prefix the data with the type so loads can tell image vs palette apart.
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    body: type + ':' + data
+  });
+  if(!res.ok) throw new Error('Share save failed: ' + res.status);
+  const json = await res.json();
+  return json.id;
 }
 
 async function sbLoad(id) {
-  const res = await fetch(`${SB_URL}/rest/v1/shared_images?id=eq.${id}&select=type,data`, {
-    headers: SB_HEADERS
-  });
-  if(!res.ok) throw new Error('Supabase load failed: ' + res.status);
-  const rows = await res.json();
-  if(!rows.length) throw new Error('Not found');
-  return rows[0];
+  const res = await fetch(`${WORKER_URL}/?id=${encodeURIComponent(id)}`);
+  if(!res.ok) throw new Error('Share load failed: ' + res.status);
+  const json = await res.json();
+  const raw = json.data;
+  const sep = raw.indexOf(':');
+  const type = raw.slice(0, sep);
+  const data = raw.slice(sep + 1);
+  return { type, data };
 }
 
 // Formats: #i2:<deflate+base85 image>  #p2;<deflate+base85 palette>
